@@ -1,6 +1,6 @@
 {
   "name": "shield-remote-card",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Trackpad, D-pad and app shortcuts for Nvidia Shield / Android TV in Home Assistant.",
   "type": "module",
   "scripts": {

@@ -2,18 +2,31 @@ import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import type { HomeAssistant } from "custom-card-helpers";
 import { HaService } from "../lib/ha-service";
-import { KEYCODE } from "../const";
+import { DEFAULT_LONG_PRESS_HOLD_SECS, KEYCODE } from "../const";
+import { triggerHaptic } from "../lib/haptics";
+import { LongPressController } from "../lib/long-press";
 
 @customElement("shield-dpad-cluster")
 export class ShieldDpadCluster extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ attribute: false }) entity!: string;
+  @property({ type: Boolean }) haptics?: boolean;
   @property({ type: Boolean, reflect: true }) disabled = false;
 
-  private _send(command: string) {
+  private _centerLongPress = new LongPressController(() =>
+    this._send(KEYCODE.DPAD_CENTER, DEFAULT_LONG_PRESS_HOLD_SECS, "medium")
+  );
+
+  private _send(command: string, holdSecs?: number, haptic: "light" | "medium" = "light") {
     if (this.disabled) return;
-    new HaService(this.hass, this.entity).sendCommand(command);
+    triggerHaptic(this.haptics, haptic);
+    new HaService(this.hass, this.entity).sendCommand(command, holdSecs);
   }
+
+  private _onCenterClick = () => {
+    if (this._centerLongPress.consumeClick()) return;
+    this._send(KEYCODE.DPAD_CENTER);
+  };
 
   render() {
     return html`
@@ -34,8 +47,12 @@ export class ShieldDpadCluster extends LitElement {
         </ha-icon-button>
         <ha-icon-button
           class="center"
-          .label=${"Select"}
-          @click=${() => this._send(KEYCODE.DPAD_CENTER)}
+          .label=${"Select (hold for long-press)"}
+          @pointerdown=${this._centerLongPress.onPointerDown}
+          @pointermove=${this._centerLongPress.onPointerMove}
+          @pointerup=${this._centerLongPress.onPointerUp}
+          @pointercancel=${this._centerLongPress.onPointerUp}
+          @click=${this._onCenterClick}
         >
           <ha-icon icon="mdi:circle-medium"></ha-icon>
         </ha-icon-button>
@@ -93,6 +110,10 @@ export class ShieldDpadCluster extends LitElement {
     }
     ha-icon-button {
       --mdc-icon-button-size: 44px;
+      transition: transform 80ms ease-out;
+    }
+    ha-icon-button:active {
+      transform: scale(0.9);
     }
   `;
 }

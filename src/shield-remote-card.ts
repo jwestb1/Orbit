@@ -6,13 +6,17 @@ import "./components/dpad-cluster";
 import "./components/button-row";
 import "./components/app-grid";
 import "./components/volume-slider";
-import { CARD_DESCRIPTION, CARD_NAME, CARD_TYPE, DEFAULT_APPS } from "./const";
+import "./editor";
+import { CARD_DESCRIPTION, CARD_NAME, CARD_TYPE, DEFAULT_APPS, UNAVAILABLE_GRACE_MS } from "./const";
 import type { ShieldRemoteCardConfig } from "./types";
 
 @customElement(CARD_TYPE)
 export class ShieldRemoteCard extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @state() private _config!: ShieldRemoteCardConfig;
+  @state() private _showUnavailable = false;
+
+  private _unavailableTimer?: number;
 
   setConfig(config: ShieldRemoteCardConfig): void {
     if (!config.remote_entity) {
@@ -25,13 +29,22 @@ export class ShieldRemoteCard extends LitElement {
     return { remote_entity: "", media_player_entity: "" };
   }
 
+  static getConfigElement(): HTMLElement {
+    return document.createElement("shield-remote-card-editor");
+  }
+
   getCardSize(): number {
     return 6;
   }
 
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    window.clearTimeout(this._unavailableTimer);
+  }
+
   protected shouldUpdate(changed: PropertyValues): boolean {
     if (!this._config) return false;
-    if (changed.has("_config")) return true;
+    if (changed.has("_config") || changed.has("_showUnavailable")) return true;
 
     const oldHass = changed.get("hass") as HomeAssistant | undefined;
     if (!oldHass) return true;
@@ -44,29 +57,54 @@ export class ShieldRemoteCard extends LitElement {
     );
   }
 
-  render() {
+  protected willUpdate(changed: PropertyValues): void {
+    if (!this._config || !changed.has("hass")) return;
+
     const stateObj = this.hass.states[this._config.remote_entity];
     const unavailable = !stateObj || stateObj.state === "unavailable";
+
+    if (!unavailable) {
+      window.clearTimeout(this._unavailableTimer);
+      this._unavailableTimer = undefined;
+      this._showUnavailable = false;
+      return;
+    }
+
+    if (!this._unavailableTimer && !this._showUnavailable) {
+      this._unavailableTimer = window.setTimeout(() => {
+        this._unavailableTimer = undefined;
+        this._showUnavailable = true;
+      }, UNAVAILABLE_GRACE_MS);
+    }
+  }
+
+  render() {
+    const unavailable = this._showUnavailable;
 
     return html`
       <ha-card>
         ${unavailable
           ? html`<div class="unavailable-banner">Shield is unavailable</div>`
           : ""}
-        <shield-trackpad
-          .hass=${this.hass}
-          .entity=${this._config.remote_entity}
-          .config=${this._config.trackpad ?? {}}
-          ?disabled=${unavailable}
-        ></shield-trackpad>
-        <shield-dpad-cluster
-          .hass=${this.hass}
-          .entity=${this._config.remote_entity}
-          ?disabled=${unavailable}
-        ></shield-dpad-cluster>
+        <div class="primary-controls">
+          <shield-trackpad
+            .hass=${this.hass}
+            .entity=${this._config.remote_entity}
+            .config=${this._config.trackpad ?? {}}
+            .haptics=${this._config.haptics}
+            ?disabled=${unavailable}
+          ></shield-trackpad>
+          <shield-dpad-cluster
+            .hass=${this.hass}
+            .entity=${this._config.remote_entity}
+            .haptics=${this._config.haptics}
+            ?disabled=${unavailable}
+          ></shield-dpad-cluster>
+        </div>
         <shield-button-row
           .hass=${this.hass}
           .entity=${this._config.remote_entity}
+          .haptics=${this._config.haptics}
           ?disabled=${unavailable}
         ></shield-button-row>
         ${this._config.media_player_entity
@@ -80,6 +118,7 @@ export class ShieldRemoteCard extends LitElement {
           .hass=${this.hass}
           .entity=${this._config.remote_entity}
           .apps=${this._config.apps ?? DEFAULT_APPS}
+          .haptics=${this._config.haptics}
           ?disabled=${unavailable}
         ></shield-app-grid>
       </ha-card>
@@ -88,6 +127,8 @@ export class ShieldRemoteCard extends LitElement {
 
   static styles = css`
     ha-card {
+      container-type: inline-size;
+      container-name: shield-remote-card;
       padding: 16px;
       display: flex;
       flex-direction: column;
@@ -99,6 +140,23 @@ export class ShieldRemoteCard extends LitElement {
       font-size: 0.85em;
       color: var(--error-color, #db4437);
       text-align: center;
+    }
+    .primary-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    @container shield-remote-card (min-width: 420px) {
+      .primary-controls {
+        flex-direction: row;
+        align-items: center;
+      }
+      .primary-controls shield-trackpad {
+        flex: 1 1 55%;
+      }
+      .primary-controls shield-dpad-cluster {
+        flex: 0 0 auto;
+      }
     }
   `;
 }

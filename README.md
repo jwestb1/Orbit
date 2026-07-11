@@ -26,6 +26,10 @@ via HACS once published.
 
 ## Configuration
 
+The card ships a GUI editor (entities, trackpad sensitivity, haptics, app
+shortcuts) — add it via the dashboard UI and configure it without touching
+YAML. Equivalent YAML:
+
 ```yaml
 type: custom:shield-remote-card
 remote_entity: remote.living_room_shield
@@ -41,5 +45,14 @@ apps:
 ## Status
 
 Phase 1 (MVP) scaffolded: card shell, config schema, D-pad/button cluster,
-gesture-based trackpad, and a default app shortcut grid — see §7 of the spec
-for the full phase breakdown.
+gesture-based trackpad, and a default app shortcut grid.
+
+Phase 2 (polish & configurability) complete: GUI config editor for entities,
+trackpad sensitivity, haptics, and app shortcuts (add/remove/reorder);
+long-press (`hold_secs`) on D-pad-center, Home, and Back; two-finger-tap for
+Back on the trackpad; haptic feedback via `forwardHaptic`; a debounced
+unavailable state (so brief reconnect blips don't flicker the UI); and a
+responsive layout that puts the trackpad and D-pad side-by-side once the
+card is wide enough.
+
+See §7 of the spec for the full phase breakdown.

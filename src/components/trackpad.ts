@@ -3,6 +3,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import type { HomeAssistant } from "custom-card-helpers";
 import { HaService } from "../lib/ha-service";
 import { GestureEngine } from "../lib/gesture-engine";
+import { triggerHaptic } from "../lib/haptics";
 import type { TrackpadConfig } from "../types";
 
 const LONG_PRESS_MS = 500;
@@ -13,6 +14,7 @@ export class ShieldTrackpad extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ attribute: false }) entity!: string;
   @property({ attribute: false }) config: TrackpadConfig = {};
+  @property({ type: Boolean }) haptics?: boolean;
   @property({ type: Boolean, reflect: true }) disabled = false;
 
   @state() private _pressed = false;
@@ -39,7 +41,10 @@ export class ShieldTrackpad extends LitElement {
     const service = this._getService();
     if (!this._engine) {
       this._engine = new GestureEngine(
-        (code, holdSecs) => service.sendCommand(code, holdSecs),
+        (code, holdSecs) => {
+          triggerHaptic(this.haptics, holdSecs ? "medium" : "selection");
+          service.sendCommand(code, holdSecs);
+        },
         this.config.sensitivity
       );
     }

@@ -3,6 +3,7 @@ import { customElement, property } from "lit/decorators.js";
 import type { HomeAssistant } from "custom-card-helpers";
 import { HaService } from "../lib/ha-service";
 import { DEFAULT_APPS } from "../const";
+import { triggerHaptic } from "../lib/haptics";
 import type { AppShortcut } from "../types";
 
 @customElement("shield-app-grid")
@@ -10,10 +11,12 @@ export class ShieldAppGrid extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ attribute: false }) entity!: string;
   @property({ attribute: false }) apps: AppShortcut[] = DEFAULT_APPS;
+  @property({ type: Boolean }) haptics?: boolean;
   @property({ type: Boolean, reflect: true }) disabled = false;
 
   private _launch(app: AppShortcut) {
     if (this.disabled) return;
+    triggerHaptic(this.haptics, "selection");
     new HaService(this.hass, this.entity).launchApp(app.package);
   }
 

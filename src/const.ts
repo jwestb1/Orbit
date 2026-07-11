@@ -51,3 +51,7 @@ export const DEFAULT_APPS: AppShortcut[] = [
 export const DEFAULT_TRACKPAD_SENSITIVITY_PX = 6;
 export const DEFAULT_MIN_SEND_INTERVAL_MS = 40;
 export const DEFAULT_LONG_PRESS_HOLD_SECS = 0.5;
+
+// Grace period before showing the unavailable state, so the reported
+// ~15s disconnect/reconnect blips (spec §3.4) don't flicker the UI.
+export const UNAVAILABLE_GRACE_MS = 2000;
