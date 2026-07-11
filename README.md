@@ -4,6 +4,12 @@ A custom Lovelace card (`shield-remote-card`) that replaces a physical Nvidia
 Shield TV remote inside Home Assistant: trackpad, D-pad, power/home/back,
 volume, and one-tap app shortcuts.
 
+![Card layout mockup: trackpad, D-pad, power/home/back buttons, volume slider, and app shortcut grid](./images/card-preview.svg)
+
+*Layout mockup — not a live screenshot. Trackpad (left), D-pad cluster
+(right), power/home/back and volume below, and the app shortcut grid at the
+bottom.*
+
 Full design doc: [`shield-ha-remote-spec.md`](./shield-ha-remote-spec.md).
 
 ## Requirements
