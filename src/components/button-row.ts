@@ -36,6 +36,12 @@ export class ShieldButtonRow extends LitElement {
     this._send(KEYCODE.HOME);
   };
 
+  private _onKeyboardClick = (): void => {
+    if (this.disabled) return;
+    triggerHaptic(this.haptics, "light");
+    this.dispatchEvent(new CustomEvent("open-text-input", { bubbles: true, composed: true }));
+  };
+
   render() {
     return html`
       <div class="row">
@@ -74,6 +80,9 @@ export class ShieldButtonRow extends LitElement {
         </ha-icon-button>
         <ha-icon-button .label=${"Volume up"} @click=${() => this._send(KEYCODE.VOLUME_UP)}>
           <ha-icon icon="mdi:volume-plus"></ha-icon>
+        </ha-icon-button>
+        <ha-icon-button .label=${"Text input"} @click=${this._onKeyboardClick}>
+          <ha-icon icon="mdi:keyboard-outline"></ha-icon>
         </ha-icon-button>
       </div>
     `;

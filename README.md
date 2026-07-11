@@ -22,7 +22,21 @@ npm test          # runs the unit tests (Vitest)
 
 To try the card in a real dashboard, copy `dist/shield-remote-card.js` into
 your HA `config/www/` directory and add it as a Lovelace resource, or install
-via HACS once published.
+via HACS (see below).
+
+## Installation via HACS
+
+1. In HACS, add this repository as a **custom repository** (category:
+   `Dashboard`) — Settings → Custom repositories → paste this repo's URL.
+   (Not needed once/if this card is accepted into the HACS default store.)
+2. Install "Nvidia Shield Remote" from HACS and add the resource it
+   registers.
+3. Add the card to a dashboard as `custom:shield-remote-card` and configure
+   `remote_entity` (and optionally `media_player_entity`) via the GUI editor.
+
+Releases are built and published automatically by GitHub Actions: pushing a
+`vX.Y.Z` tag builds `dist/shield-remote-card.js` and attaches it to a GitHub
+Release, which is what HACS installs from.
 
 ## Configuration
 
@@ -42,6 +56,14 @@ apps:
     package: com.google.android.youtube.tv
 ```
 
+## Text input
+
+The button row includes a keyboard icon that opens a small text-input sheet.
+Whatever you type is sent as a single `text:<value>` command (the protocol's
+IME-injection prefix, §3.3 of the spec) to whatever field is currently
+focused on the Shield — handy for search boxes and login forms without
+hunting-and-pecking with the D-pad.
+
 ## Status
 
 Phase 1 (MVP) scaffolded: card shell, config schema, D-pad/button cluster,
@@ -54,5 +76,12 @@ Back on the trackpad; haptic feedback via `forwardHaptic`; a debounced
 unavailable state (so brief reconnect blips don't flicker the UI); and a
 responsive layout that puts the trackpad and D-pad side-by-side once the
 card is wide enough.
+
+Phase 3 (distribution & extras) complete: HACS packaging (`hacs.json`,
+this README, MIT `LICENSE`), a GitHub Actions pipeline that builds/tests on
+every push and publishes `dist/shield-remote-card.js` as a release asset on
+tagged releases, a `hacs/action` validation workflow, and the text-input
+helper described above. No companion Python integration was needed — the
+`androidtv_remote` core integration still covers everything this card uses.
 
 See §7 of the spec for the full phase breakdown.

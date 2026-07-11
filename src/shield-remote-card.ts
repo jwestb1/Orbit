@@ -6,6 +6,7 @@ import "./components/dpad-cluster";
 import "./components/button-row";
 import "./components/app-grid";
 import "./components/volume-slider";
+import "./components/text-input-sheet";
 import "./editor";
 import { CARD_DESCRIPTION, CARD_NAME, CARD_TYPE, DEFAULT_APPS, UNAVAILABLE_GRACE_MS } from "./const";
 import type { ShieldRemoteCardConfig } from "./types";
@@ -15,6 +16,7 @@ export class ShieldRemoteCard extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @state() private _config!: ShieldRemoteCardConfig;
   @state() private _showUnavailable = false;
+  @state() private _textInputOpen = false;
 
   private _unavailableTimer?: number;
 
@@ -44,7 +46,8 @@ export class ShieldRemoteCard extends LitElement {
 
   protected shouldUpdate(changed: PropertyValues): boolean {
     if (!this._config) return false;
-    if (changed.has("_config") || changed.has("_showUnavailable")) return true;
+    if (changed.has("_config") || changed.has("_showUnavailable") || changed.has("_textInputOpen"))
+      return true;
 
     const oldHass = changed.get("hass") as HomeAssistant | undefined;
     if (!oldHass) return true;
@@ -78,6 +81,14 @@ export class ShieldRemoteCard extends LitElement {
     }
   }
 
+  private _openTextInput = (): void => {
+    this._textInputOpen = true;
+  };
+
+  private _closeTextInput = (): void => {
+    this._textInputOpen = false;
+  };
+
   render() {
     const unavailable = this._showUnavailable;
 
@@ -106,6 +117,7 @@ export class ShieldRemoteCard extends LitElement {
           .entity=${this._config.remote_entity}
           .haptics=${this._config.haptics}
           ?disabled=${unavailable}
+          @open-text-input=${this._openTextInput}
         ></shield-button-row>
         ${this._config.media_player_entity
           ? html`<shield-volume-slider
@@ -121,6 +133,13 @@ export class ShieldRemoteCard extends LitElement {
           .haptics=${this._config.haptics}
           ?disabled=${unavailable}
         ></shield-app-grid>
+        <shield-text-input-sheet
+          .hass=${this.hass}
+          .entity=${this._config.remote_entity}
+          .haptics=${this._config.haptics}
+          .open=${this._textInputOpen}
+          @text-input-closed=${this._closeTextInput}
+        ></shield-text-input-sheet>
       </ha-card>
     `;
   }
