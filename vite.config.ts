@@ -10,7 +10,7 @@ export default defineConfig({
     outDir: "dist",
     rollupOptions: {
       output: {
-        inlineDynamicImports: true,
+        codeSplitting: false,
       },
     },
   },
