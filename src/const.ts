@@ -55,3 +55,9 @@ export const DEFAULT_LONG_PRESS_HOLD_SECS = 0.5;
 // Grace period before showing the unavailable state, so the reported
 // ~15s disconnect/reconnect blips (spec §3.4) don't flicker the UI.
 export const UNAVAILABLE_GRACE_MS = 2000;
+
+// Relevant bits of media_player's SUPPORT_* feature bitmask (HA core const.py)
+export const MEDIA_PLAYER_FEATURE = {
+  VOLUME_SET: 4,
+  VOLUME_STEP: 1024,
+} as const;
