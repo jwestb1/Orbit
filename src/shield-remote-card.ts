@@ -4,6 +4,7 @@ import type { HomeAssistant } from "custom-card-helpers";
 import "./components/trackpad";
 import "./components/dpad-cluster";
 import "./components/button-row";
+import "./components/media-row";
 import "./components/app-grid";
 import "./components/volume-slider";
 import "./components/text-input-sheet";
@@ -119,6 +120,12 @@ export class ShieldRemoteCard extends LitElement {
           ?disabled=${unavailable}
           @open-text-input=${this._openTextInput}
         ></shield-button-row>
+        <shield-media-row
+          .hass=${this.hass}
+          .entity=${this._config.remote_entity}
+          .haptics=${this._config.haptics}
+          ?disabled=${unavailable}
+        ></shield-media-row>
         ${this._config.media_player_entity
           ? html`<shield-volume-slider
               .hass=${this.hass}
