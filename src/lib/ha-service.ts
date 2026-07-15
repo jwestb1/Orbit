@@ -32,6 +32,15 @@ export class HaService {
     );
   }
 
+  selectSource(mediaPlayerEntity: string, source: string): void {
+    this.hass.callService(
+      "media_player",
+      "select_source",
+      { source },
+      { entity_id: mediaPlayerEntity }
+    );
+  }
+
   playMedia(mediaPlayerEntity: string, contentId: string, contentType: string): void {
     this.hass.callService(
       "media_player",

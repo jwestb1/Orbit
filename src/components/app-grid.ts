@@ -11,14 +11,25 @@ export class ShieldAppGrid extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ attribute: false }) entity!: string;
   @property({ attribute: false }) apps: AppShortcut[] = DEFAULT_APPS;
+  @property({ attribute: false }) mediaPlayerEntity?: string;
   @property({ type: Boolean }) haptics?: boolean;
   @property({ type: Boolean, reflect: true }) disabled = false;
 
   private _launch(app: AppShortcut) {
     if (this.disabled) return;
     triggerHaptic(this.haptics, "selection");
-    new HaService(this.hass, this.entity).launchApp(app.package);
+    const service = new HaService(this.hass, this.entity);
+    if (app.source && this.mediaPlayerEntity) {
+      service.selectSource(this.mediaPlayerEntity, app.source);
+    } else if (app.package) {
+      service.launchApp(app.package);
+    }
   }
+
+  private _openPicker = (): void => {
+    if (this.disabled) return;
+    this.dispatchEvent(new CustomEvent("open-app-picker", { bubbles: true, composed: true }));
+  };
 
   render() {
     return html`
@@ -31,6 +42,10 @@ export class ShieldAppGrid extends LitElement {
             </button>
           `
         )}
+        <button class="tile customize-tile" @click=${this._openPicker} title="Customize apps">
+          <ha-icon icon="mdi:cog"></ha-icon>
+          <span class="label">Customize</span>
+        </button>
       </div>
     `;
   }
@@ -61,6 +76,10 @@ export class ShieldAppGrid extends LitElement {
     }
     .tile:active {
       background: var(--divider-color, #ccc);
+    }
+    .customize-tile {
+      background: transparent;
+      border: 1px dashed var(--divider-color, #ccc);
     }
     .label {
       font-size: 0.75em;

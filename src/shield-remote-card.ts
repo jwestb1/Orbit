@@ -8,9 +8,11 @@ import "./components/media-row";
 import "./components/app-grid";
 import "./components/volume-slider";
 import "./components/text-input-sheet";
+import "./components/app-picker-dialog";
 import "./editor";
 import { CARD_DESCRIPTION, CARD_NAME, CARD_TYPE, DEFAULT_APPS, UNAVAILABLE_GRACE_MS } from "./const";
-import type { ShieldRemoteCardConfig } from "./types";
+import { loadOverride } from "./lib/app-shortcuts-storage";
+import type { AppShortcut, ShieldRemoteCardConfig } from "./types";
 
 @customElement(CARD_TYPE)
 export class ShieldRemoteCard extends LitElement {
@@ -18,6 +20,8 @@ export class ShieldRemoteCard extends LitElement {
   @state() private _config!: ShieldRemoteCardConfig;
   @state() private _showUnavailable = false;
   @state() private _textInputOpen = false;
+  @state() private _appPickerOpen = false;
+  @state() private _appsOverride: AppShortcut[] | null = null;
 
   private _unavailableTimer?: number;
 
@@ -26,6 +30,11 @@ export class ShieldRemoteCard extends LitElement {
       throw new Error("shield-remote-card: 'remote_entity' is required");
     }
     this._config = config;
+    this._appsOverride = loadOverride(config.remote_entity);
+  }
+
+  private get _apps(): AppShortcut[] {
+    return this._appsOverride ?? this._config.apps ?? DEFAULT_APPS;
   }
 
   static getStubConfig(): Partial<ShieldRemoteCardConfig> {
@@ -47,7 +56,13 @@ export class ShieldRemoteCard extends LitElement {
 
   protected shouldUpdate(changed: PropertyValues): boolean {
     if (!this._config) return false;
-    if (changed.has("_config") || changed.has("_showUnavailable") || changed.has("_textInputOpen"))
+    if (
+      changed.has("_config") ||
+      changed.has("_showUnavailable") ||
+      changed.has("_textInputOpen") ||
+      changed.has("_appPickerOpen") ||
+      changed.has("_appsOverride")
+    )
       return true;
 
     const oldHass = changed.get("hass") as HomeAssistant | undefined;
@@ -88,6 +103,16 @@ export class ShieldRemoteCard extends LitElement {
 
   private _closeTextInput = (): void => {
     this._textInputOpen = false;
+  };
+
+  private _openAppPicker = (): void => {
+    this._appPickerOpen = true;
+  };
+
+  private _closeAppPicker = (): void => {
+    this._appPickerOpen = false;
+    // Picks up a Save; harmless no-op re-read on Cancel.
+    this._appsOverride = loadOverride(this._config.remote_entity);
   };
 
   render() {
@@ -136,9 +161,11 @@ export class ShieldRemoteCard extends LitElement {
         <shield-app-grid
           .hass=${this.hass}
           .entity=${this._config.remote_entity}
-          .apps=${this._config.apps ?? DEFAULT_APPS}
+          .apps=${this._apps}
+          .mediaPlayerEntity=${this._config.media_player_entity}
           .haptics=${this._config.haptics}
           ?disabled=${unavailable}
+          @open-app-picker=${this._openAppPicker}
         ></shield-app-grid>
         <shield-text-input-sheet
           .hass=${this.hass}
@@ -147,6 +174,15 @@ export class ShieldRemoteCard extends LitElement {
           .open=${this._textInputOpen}
           @text-input-closed=${this._closeTextInput}
         ></shield-text-input-sheet>
+        <shield-app-picker-dialog
+          .hass=${this.hass}
+          .open=${this._appPickerOpen}
+          .remoteEntity=${this._config.remote_entity}
+          .mediaPlayerEntity=${this._config.media_player_entity}
+          .apps=${this._apps}
+          .configDefaultApps=${this._config.apps ?? DEFAULT_APPS}
+          @app-picker-closed=${this._closeAppPicker}
+        ></shield-app-picker-dialog>
       </ha-card>
     `;
   }
