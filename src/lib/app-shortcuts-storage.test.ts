@@ -30,10 +30,10 @@ describe("app-shortcuts-storage", () => {
     expect(loadOverride("remote.shield")).toBeNull();
   });
 
-  it("round-trips both package- and source-based shortcuts", () => {
+  it("round-trips package-based shortcuts", () => {
     vi.stubGlobal("localStorage", fakeLocalStorage());
     const apps: AppShortcut[] = [
-      { name: "Netflix", icon: "mdi:netflix", source: "Netflix" },
+      { name: "Netflix", icon: "mdi:netflix", package: "com.netflix.ninja" },
       { name: "Kodi", icon: "mdi:kodi", package: "org.xbmc.kodi" },
     ];
     saveOverride("remote.shield", apps);
@@ -52,15 +52,15 @@ describe("app-shortcuts-storage", () => {
     storage.setItem(
       "shield-remote-card.apps.remote.shield",
       JSON.stringify([
-        { name: "Netflix", icon: "mdi:netflix", source: "Netflix" },
-        { name: "Missing launch mode", icon: "mdi:apps" },
+        { name: "Netflix", icon: "mdi:netflix", package: "com.netflix.ninja" },
+        { name: "Missing package", icon: "mdi:apps" },
         { icon: "mdi:apps", package: "com.example" },
         "not an object",
       ])
     );
     vi.stubGlobal("localStorage", storage);
     expect(loadOverride("remote.shield")).toEqual([
-      { name: "Netflix", icon: "mdi:netflix", source: "Netflix" },
+      { name: "Netflix", icon: "mdi:netflix", package: "com.netflix.ninja" },
     ]);
   });
 

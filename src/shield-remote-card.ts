@@ -5,9 +5,9 @@ import "./components/trackpad";
 import "./components/dpad-cluster";
 import "./components/button-row";
 import "./components/media-row";
-import "./components/app-grid";
 import "./components/volume-slider";
 import "./components/text-input-sheet";
+import "./components/app-launcher-dialog";
 import "./components/app-picker-dialog";
 import "./editor";
 import { CARD_DESCRIPTION, CARD_NAME, CARD_TYPE, DEFAULT_APPS, UNAVAILABLE_GRACE_MS } from "./const";
@@ -20,6 +20,7 @@ export class ShieldRemoteCard extends LitElement {
   @state() private _config!: ShieldRemoteCardConfig;
   @state() private _showUnavailable = false;
   @state() private _textInputOpen = false;
+  @state() private _appLauncherOpen = false;
   @state() private _appPickerOpen = false;
   @state() private _appsOverride: AppShortcut[] | null = null;
 
@@ -60,6 +61,7 @@ export class ShieldRemoteCard extends LitElement {
       changed.has("_config") ||
       changed.has("_showUnavailable") ||
       changed.has("_textInputOpen") ||
+      changed.has("_appLauncherOpen") ||
       changed.has("_appPickerOpen") ||
       changed.has("_appsOverride")
     )
@@ -105,6 +107,14 @@ export class ShieldRemoteCard extends LitElement {
     this._textInputOpen = false;
   };
 
+  private _openAppLauncher = (): void => {
+    this._appLauncherOpen = true;
+  };
+
+  private _closeAppLauncher = (): void => {
+    this._appLauncherOpen = false;
+  };
+
   private _openAppPicker = (): void => {
     this._appPickerOpen = true;
   };
@@ -144,6 +154,7 @@ export class ShieldRemoteCard extends LitElement {
           .haptics=${this._config.haptics}
           ?disabled=${unavailable}
           @open-text-input=${this._openTextInput}
+          @open-app-launcher=${this._openAppLauncher}
         ></shield-button-row>
         <shield-media-row
           .hass=${this.hass}
@@ -158,15 +169,6 @@ export class ShieldRemoteCard extends LitElement {
               ?disabled=${unavailable}
             ></shield-volume-slider>`
           : ""}
-        <shield-app-grid
-          .hass=${this.hass}
-          .entity=${this._config.remote_entity}
-          .apps=${this._apps}
-          .mediaPlayerEntity=${this._config.media_player_entity}
-          .haptics=${this._config.haptics}
-          ?disabled=${unavailable}
-          @open-app-picker=${this._openAppPicker}
-        ></shield-app-grid>
         <shield-text-input-sheet
           .hass=${this.hass}
           .entity=${this._config.remote_entity}
@@ -174,11 +176,19 @@ export class ShieldRemoteCard extends LitElement {
           .open=${this._textInputOpen}
           @text-input-closed=${this._closeTextInput}
         ></shield-text-input-sheet>
+        <shield-app-launcher-dialog
+          .hass=${this.hass}
+          .entity=${this._config.remote_entity}
+          .apps=${this._apps}
+          .haptics=${this._config.haptics}
+          .open=${this._appLauncherOpen}
+          @app-launcher-closed=${this._closeAppLauncher}
+          @open-app-picker=${this._openAppPicker}
+        ></shield-app-launcher-dialog>
         <shield-app-picker-dialog
           .hass=${this.hass}
           .open=${this._appPickerOpen}
           .remoteEntity=${this._config.remote_entity}
-          .mediaPlayerEntity=${this._config.media_player_entity}
           .apps=${this._apps}
           .configDefaultApps=${this._config.apps ?? DEFAULT_APPS}
           @app-picker-closed=${this._closeAppPicker}

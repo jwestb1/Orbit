@@ -42,6 +42,12 @@ export class ShieldButtonRow extends LitElement {
     this.dispatchEvent(new CustomEvent("open-text-input", { bubbles: true, composed: true }));
   };
 
+  private _onAppsClick = (): void => {
+    if (this.disabled) return;
+    triggerHaptic(this.haptics, "light");
+    this.dispatchEvent(new CustomEvent("open-app-launcher", { bubbles: true, composed: true }));
+  };
+
   render() {
     return html`
       <div class="row">
@@ -83,6 +89,9 @@ export class ShieldButtonRow extends LitElement {
         </ha-icon-button>
         <ha-icon-button .label=${"Text input"} @click=${this._onKeyboardClick}>
           <ha-icon icon="mdi:keyboard-outline"></ha-icon>
+        </ha-icon-button>
+        <ha-icon-button .label=${"Apps"} @click=${this._onAppsClick}>
+          <ha-icon icon="mdi:apps"></ha-icon>
         </ha-icon-button>
       </div>
     `;

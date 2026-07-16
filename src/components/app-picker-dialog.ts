@@ -2,17 +2,19 @@ import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type { HomeAssistant } from "custom-card-helpers";
 import { saveOverride, clearOverride } from "../lib/app-shortcuts-storage";
+import { DEFAULT_APPS } from "../const";
 import type { AppShortcut } from "../types";
 
-// Lets the user toggle shortcuts on/off from the media_player's live
-// `source_list` (spec §5.5 follow-up) and hand-edit package-based shortcuts,
-// without leaving the dashboard's normal (non-edit) view.
+const CATALOG_PACKAGES = new Set(DEFAULT_APPS.map((app) => app.package));
+
+// Lets the user toggle shortcuts on/off from the built-in default catalog
+// and hand-edit custom package-based shortcuts, without leaving the
+// dashboard's normal (non-edit) view.
 @customElement("shield-app-picker-dialog")
 export class ShieldAppPickerDialog extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ type: Boolean }) open = false;
   @property({ attribute: false }) remoteEntity!: string;
-  @property({ attribute: false }) mediaPlayerEntity?: string;
   @property({ attribute: false }) apps: AppShortcut[] = [];
   @property({ attribute: false }) configDefaultApps: AppShortcut[] = [];
 
@@ -26,42 +28,33 @@ export class ShieldAppPickerDialog extends LitElement {
     }
   }
 
-  private get _sourceList(): string[] {
-    const attrs = this.mediaPlayerEntity
-      ? this.hass?.states[this.mediaPlayerEntity]?.attributes
-      : undefined;
-    const list = attrs?.source_list;
-    if (!Array.isArray(list)) return [];
-    return list.filter((s): s is string => typeof s === "string");
-  }
-
   private get _manualEntries(): AppShortcut[] {
-    return this._draftApps.filter((a) => a.package !== undefined);
+    return this._draftApps.filter((a) => !CATALOG_PACKAGES.has(a.package));
   }
 
   private _replaceManualEntries(manual: AppShortcut[]): void {
-    const sourceEntries = this._draftApps.filter((a) => a.package === undefined);
-    this._draftApps = [...sourceEntries, ...manual];
+    const catalogEntries = this._draftApps.filter((a) => CATALOG_PACKAGES.has(a.package));
+    this._draftApps = [...catalogEntries, ...manual];
   }
 
-  private _isSourceChecked(source: string): boolean {
-    return this._draftApps.some((a) => a.source === source);
+  private _isCatalogChecked(pkg: string): boolean {
+    return this._draftApps.some((a) => a.package === pkg);
   }
 
-  private _sourceIcon(source: string): string {
-    return this._draftApps.find((a) => a.source === source)?.icon ?? "mdi:apps";
+  private _catalogIcon(catalogApp: AppShortcut): string {
+    return this._draftApps.find((a) => a.package === catalogApp.package)?.icon ?? catalogApp.icon;
   }
 
-  private _toggleSource(source: string, checked: boolean): void {
+  private _toggleCatalog(catalogApp: AppShortcut, checked: boolean): void {
     if (checked) {
-      this._draftApps = [...this._draftApps, { name: source, icon: "mdi:apps", source }];
+      this._draftApps = [...this._draftApps, { ...catalogApp }];
     } else {
-      this._draftApps = this._draftApps.filter((a) => a.source !== source);
+      this._draftApps = this._draftApps.filter((a) => a.package !== catalogApp.package);
     }
   }
 
-  private _updateSourceIcon(source: string, icon: string): void {
-    this._draftApps = this._draftApps.map((a) => (a.source === source ? { ...a, icon } : a));
+  private _updateCatalogIcon(pkg: string, icon: string): void {
+    this._draftApps = this._draftApps.map((a) => (a.package === pkg ? { ...a, icon } : a));
   }
 
   private _updateManual(index: number, field: "name" | "package" | "icon") {
@@ -103,17 +96,16 @@ export class ShieldAppPickerDialog extends LitElement {
   };
 
   private _save = (): void => {
-    const sourceEntries = this._sourceList
-      .map((source) => this._draftApps.find((a) => a.source === source))
-      .filter((a): a is AppShortcut => !!a);
-    saveOverride(this.remoteEntity, [...sourceEntries, ...this._manualEntries]);
+    const catalogEntries = DEFAULT_APPS.map((catalogApp) =>
+      this._draftApps.find((a) => a.package === catalogApp.package)
+    ).filter((a): a is AppShortcut => !!a);
+    saveOverride(this.remoteEntity, [...catalogEntries, ...this._manualEntries]);
     this._close();
   };
 
   render() {
     if (!this.open) return html``;
 
-    const sources = this._sourceList;
     const manual = this._manualEntries;
 
     return html`
@@ -121,34 +113,30 @@ export class ShieldAppPickerDialog extends LitElement {
         <div class="content">
           <p class="hint">Saved in this browser only — overrides the dashboard's configured app list.</p>
 
-          ${sources.length
-            ? html`
-                <div class="section-title">From ${this.mediaPlayerEntity}</div>
-                ${sources.map(
-                  (source) => html`
-                    <div class="source-row">
-                      <ha-formfield .label=${source}>
-                        <ha-switch
-                          .checked=${this._isSourceChecked(source)}
-                          @change=${(e: Event) =>
-                            this._toggleSource(source, (e.target as HTMLInputElement).checked)}
-                        ></ha-switch>
-                      </ha-formfield>
-                      ${this._isSourceChecked(source)
-                        ? html`
-                            <ha-icon-picker
-                              .hass=${this.hass}
-                              .value=${this._sourceIcon(source)}
-                              @value-changed=${(e: CustomEvent<{ value: string }>) =>
-                                this._updateSourceIcon(source, e.detail.value)}
-                            ></ha-icon-picker>
-                          `
-                        : ""}
-                    </div>
-                  `
-                )}
-              `
-            : ""}
+          <div class="section-title">Default apps</div>
+          ${DEFAULT_APPS.map(
+            (catalogApp) => html`
+              <div class="source-row">
+                <ha-formfield .label=${catalogApp.name}>
+                  <ha-switch
+                    .checked=${this._isCatalogChecked(catalogApp.package)}
+                    @change=${(e: Event) =>
+                      this._toggleCatalog(catalogApp, (e.target as HTMLInputElement).checked)}
+                  ></ha-switch>
+                </ha-formfield>
+                ${this._isCatalogChecked(catalogApp.package)
+                  ? html`
+                      <ha-icon-picker
+                        .hass=${this.hass}
+                        .value=${this._catalogIcon(catalogApp)}
+                        @value-changed=${(e: CustomEvent<{ value: string }>) =>
+                          this._updateCatalogIcon(catalogApp.package, e.detail.value)}
+                      ></ha-icon-picker>
+                    `
+                  : ""}
+              </div>
+            `
+          )}
 
           <div class="section-title">Custom shortcuts</div>
           ${manual.map(
@@ -171,7 +159,7 @@ export class ShieldAppPickerDialog extends LitElement {
                 ></ha-textfield>
                 <ha-textfield
                   .label=${"Package ID"}
-                  .value=${app.package ?? ""}
+                  .value=${app.package}
                   @input=${this._updateManual(index, "package")}
                 ></ha-textfield>
                 <ha-icon-button

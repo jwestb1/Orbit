@@ -3,10 +3,7 @@ import type { LovelaceCardConfig } from "custom-card-helpers";
 export interface AppShortcut {
   name: string;
   icon: string;
-  /** Launch via `remote.turn_on` + `activity` on the remote entity. */
-  package?: string;
-  /** Launch via `media_player.select_source` on the media_player entity. */
-  source?: string;
+  package: string;
 }
 
 export interface TrackpadConfig {

@@ -9,11 +9,7 @@ function storageKey(remoteEntity: string): string {
 function isValidShortcut(value: unknown): value is AppShortcut {
   if (!value || typeof value !== "object") return false;
   const v = value as Record<string, unknown>;
-  return (
-    typeof v.name === "string" &&
-    typeof v.icon === "string" &&
-    (typeof v.package === "string" || typeof v.source === "string")
-  );
+  return typeof v.name === "string" && typeof v.icon === "string" && typeof v.package === "string";
 }
 
 // Returns null if there is no override, storage is unavailable, or the stored value is malformed.
