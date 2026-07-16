@@ -84,6 +84,7 @@ export class ShieldDpadCluster extends LitElement {
       grid-template-columns: repeat(3, 44px);
       grid-template-rows: repeat(3, 44px);
       justify-content: center;
+      align-content: center;
       gap: 4px;
     }
     .up {
@@ -97,8 +98,6 @@ export class ShieldDpadCluster extends LitElement {
     .center {
       grid-column: 2;
       grid-row: 2;
-      background: var(--secondary-background-color, #eee);
-      border-radius: 50%;
     }
     .right {
       grid-column: 3;
