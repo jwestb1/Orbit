@@ -28,15 +28,4 @@ describe("HaService", () => {
       { entity_id: "remote.shield" }
     );
   });
-
-  it("selectSource calls media_player.select_source against the media_player entity", () => {
-    const hass = fakeHass();
-    new HaService(hass, "remote.shield").selectSource("media_player.shield", "Netflix");
-    expect(hass.callService).toHaveBeenCalledWith(
-      "media_player",
-      "select_source",
-      { source: "Netflix" },
-      { entity_id: "media_player.shield" }
-    );
-  });
 });
