@@ -1,9 +1,10 @@
-import { LitElement, html, css } from "lit";
+import { LitElement, html, css, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type { HomeAssistant } from "custom-card-helpers";
 import { HaService } from "../lib/ha-service";
 import { GestureEngine } from "../lib/gesture-engine";
 import { triggerHaptic } from "../lib/haptics";
+import { DEFAULT_TRACKPAD_HEIGHT_PX } from "../const";
 import type { TrackpadConfig } from "../types";
 
 const LONG_PRESS_MS = 500;
@@ -16,6 +17,7 @@ export class ShieldTrackpad extends LitElement {
   @property({ attribute: false }) config: TrackpadConfig = {};
   @property({ type: Boolean }) haptics?: boolean;
   @property({ type: Boolean, reflect: true }) disabled = false;
+  @property({ type: Number }) heightPx?: number;
 
   @state() private _pressed = false;
 
@@ -27,6 +29,12 @@ export class ShieldTrackpad extends LitElement {
   private _downX = 0;
   private _downY = 0;
   private _activePointers = 0;
+
+  protected updated(changed: PropertyValues): void {
+    if (changed.has("heightPx")) {
+      this.style.setProperty("--shield-trackpad-height", `${this.heightPx ?? DEFAULT_TRACKPAD_HEIGHT_PX}px`);
+    }
+  }
 
   private _getService(): HaService {
     if (!this._service || this._serviceEntity !== this.entity) {
@@ -119,7 +127,7 @@ export class ShieldTrackpad extends LitElement {
       touch-action: none;
       user-select: none;
       -webkit-user-select: none;
-      height: 180px;
+      height: var(--shield-trackpad-height, 180px);
       border-radius: 12px;
       background: var(--secondary-background-color, #eee);
       display: flex;

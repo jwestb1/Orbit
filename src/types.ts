@@ -24,3 +24,9 @@ export interface ShieldRemoteCardConfig extends LovelaceCardConfig {
 }
 
 export type RemoteDirection = "SHORT" | "START_LONG" | "END_LONG";
+
+export interface UiSettingsOverride {
+  trackpadHeight?: number;
+  dpadButtonSize?: number;
+  sensitivity?: number;
+}
