@@ -1,8 +1,8 @@
-import { LitElement, html, css } from "lit";
+import { LitElement, html, css, type PropertyValues } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import type { HomeAssistant } from "custom-card-helpers";
 import { HaService } from "../lib/ha-service";
-import { DEFAULT_LONG_PRESS_HOLD_SECS, KEYCODE } from "../const";
+import { DEFAULT_DPAD_BUTTON_SIZE_PX, DEFAULT_LONG_PRESS_HOLD_SECS, KEYCODE } from "../const";
 import { triggerHaptic } from "../lib/haptics";
 import { LongPressController } from "../lib/long-press";
 
@@ -12,6 +12,16 @@ export class ShieldDpadCluster extends LitElement {
   @property({ attribute: false }) entity!: string;
   @property({ type: Boolean }) haptics?: boolean;
   @property({ type: Boolean, reflect: true }) disabled = false;
+  @property({ type: Number }) buttonSizePx?: number;
+
+  protected updated(changed: PropertyValues): void {
+    if (changed.has("buttonSizePx")) {
+      this.style.setProperty(
+        "--shield-dpad-button-size",
+        `${this.buttonSizePx ?? DEFAULT_DPAD_BUTTON_SIZE_PX}px`
+      );
+    }
+  }
 
   private _centerLongPress = new LongPressController(() =>
     this._send(KEYCODE.DPAD_CENTER, DEFAULT_LONG_PRESS_HOLD_SECS, "medium")
@@ -81,8 +91,8 @@ export class ShieldDpadCluster extends LitElement {
     }
     .dpad {
       display: grid;
-      grid-template-columns: repeat(3, 44px);
-      grid-template-rows: repeat(3, 44px);
+      grid-template-columns: repeat(3, var(--shield-dpad-button-size, 44px));
+      grid-template-rows: repeat(3, var(--shield-dpad-button-size, 44px));
       justify-content: center;
       align-content: center;
       gap: 4px;
@@ -108,7 +118,7 @@ export class ShieldDpadCluster extends LitElement {
       grid-row: 3;
     }
     ha-icon-button {
-      --mdc-icon-button-size: 44px;
+      --mdc-icon-button-size: var(--shield-dpad-button-size, 44px);
       transition: transform 80ms ease-out;
     }
     ha-icon-button:active {

@@ -56,9 +56,13 @@ export const DEFAULT_APPS: AppShortcut[] = [
   { name: "Steam Link", icon: "mdi:steam", package: "com.valvesoftware.steamlink" },
 ];
 
-export const DEFAULT_TRACKPAD_SENSITIVITY_PX = 6;
+// Bumped up from 6px: at 6px, small swipes fired D-pad repeats fast enough
+// that on-screen list scrolling felt out of control.
+export const DEFAULT_TRACKPAD_SENSITIVITY_PX = 10;
 export const DEFAULT_MIN_SEND_INTERVAL_MS = 40;
 export const DEFAULT_LONG_PRESS_HOLD_SECS = 0.5;
+export const DEFAULT_TRACKPAD_HEIGHT_PX = 180;
+export const DEFAULT_DPAD_BUTTON_SIZE_PX = 44;
 
 // Grace period before showing the unavailable state, so the reported
 // ~15s disconnect/reconnect blips (spec §3.4) don't flicker the UI.

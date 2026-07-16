@@ -9,10 +9,21 @@ import "./components/volume-slider";
 import "./components/text-input-sheet";
 import "./components/app-launcher-dialog";
 import "./components/app-picker-dialog";
+import "./components/settings-dialog";
 import "./editor";
-import { CARD_DESCRIPTION, CARD_NAME, CARD_TYPE, DEFAULT_APPS, UNAVAILABLE_GRACE_MS } from "./const";
+import {
+  CARD_DESCRIPTION,
+  CARD_NAME,
+  CARD_TYPE,
+  DEFAULT_APPS,
+  DEFAULT_DPAD_BUTTON_SIZE_PX,
+  DEFAULT_TRACKPAD_HEIGHT_PX,
+  DEFAULT_TRACKPAD_SENSITIVITY_PX,
+  UNAVAILABLE_GRACE_MS,
+} from "./const";
 import { loadOverride } from "./lib/app-shortcuts-storage";
-import type { AppShortcut, ShieldRemoteCardConfig } from "./types";
+import { loadUiSettings } from "./lib/ui-settings-storage";
+import type { AppShortcut, ShieldRemoteCardConfig, UiSettingsOverride } from "./types";
 
 @customElement(CARD_TYPE)
 export class ShieldRemoteCard extends LitElement {
@@ -23,6 +34,8 @@ export class ShieldRemoteCard extends LitElement {
   @state() private _appLauncherOpen = false;
   @state() private _appPickerOpen = false;
   @state() private _appsOverride: AppShortcut[] | null = null;
+  @state() private _settingsOpen = false;
+  @state() private _uiSettingsOverride: UiSettingsOverride | null = null;
 
   private _unavailableTimer?: number;
 
@@ -32,10 +45,27 @@ export class ShieldRemoteCard extends LitElement {
     }
     this._config = config;
     this._appsOverride = loadOverride(config.remote_entity);
+    this._uiSettingsOverride = loadUiSettings(config.remote_entity);
   }
 
   private get _apps(): AppShortcut[] {
     return this._appsOverride ?? this._config.apps ?? DEFAULT_APPS;
+  }
+
+  private get _trackpadHeight(): number {
+    return this._uiSettingsOverride?.trackpadHeight ?? DEFAULT_TRACKPAD_HEIGHT_PX;
+  }
+
+  private get _dpadButtonSize(): number {
+    return this._uiSettingsOverride?.dpadButtonSize ?? DEFAULT_DPAD_BUTTON_SIZE_PX;
+  }
+
+  private get _sensitivity(): number {
+    return (
+      this._uiSettingsOverride?.sensitivity ??
+      this._config.trackpad?.sensitivity ??
+      DEFAULT_TRACKPAD_SENSITIVITY_PX
+    );
   }
 
   static getStubConfig(): Partial<ShieldRemoteCardConfig> {
@@ -63,7 +93,9 @@ export class ShieldRemoteCard extends LitElement {
       changed.has("_textInputOpen") ||
       changed.has("_appLauncherOpen") ||
       changed.has("_appPickerOpen") ||
-      changed.has("_appsOverride")
+      changed.has("_appsOverride") ||
+      changed.has("_settingsOpen") ||
+      changed.has("_uiSettingsOverride")
     )
       return true;
 
@@ -125,11 +157,26 @@ export class ShieldRemoteCard extends LitElement {
     this._appsOverride = loadOverride(this._config.remote_entity);
   };
 
+  private _openSettings = (): void => {
+    this._settingsOpen = true;
+  };
+
+  private _closeSettings = (): void => {
+    this._settingsOpen = false;
+    // Picks up a Save; harmless no-op re-read on Cancel.
+    this._uiSettingsOverride = loadUiSettings(this._config.remote_entity);
+  };
+
   render() {
     const unavailable = this._showUnavailable;
 
     return html`
       <ha-card>
+        <div class="card-header-row">
+          <ha-icon-button .label=${"Settings"} @click=${this._openSettings}>
+            <ha-icon icon="mdi:cog"></ha-icon>
+          </ha-icon-button>
+        </div>
         ${unavailable
           ? html`<div class="unavailable-banner">Shield is unavailable</div>`
           : ""}
@@ -137,14 +184,16 @@ export class ShieldRemoteCard extends LitElement {
           <shield-trackpad
             .hass=${this.hass}
             .entity=${this._config.remote_entity}
-            .config=${this._config.trackpad ?? {}}
+            .config=${{ ...this._config.trackpad, sensitivity: this._sensitivity }}
             .haptics=${this._config.haptics}
+            .heightPx=${this._trackpadHeight}
             ?disabled=${unavailable}
           ></shield-trackpad>
           <shield-dpad-cluster
             .hass=${this.hass}
             .entity=${this._config.remote_entity}
             .haptics=${this._config.haptics}
+            .buttonSizePx=${this._dpadButtonSize}
             ?disabled=${unavailable}
           ></shield-dpad-cluster>
         </div>
@@ -193,6 +242,15 @@ export class ShieldRemoteCard extends LitElement {
           .configDefaultApps=${this._config.apps ?? DEFAULT_APPS}
           @app-picker-closed=${this._closeAppPicker}
         ></shield-app-picker-dialog>
+        <shield-settings-dialog
+          .open=${this._settingsOpen}
+          .remoteEntity=${this._config.remote_entity}
+          .trackpadHeight=${this._trackpadHeight}
+          .dpadButtonSize=${this._dpadButtonSize}
+          .sensitivity=${this._sensitivity}
+          @settings-closed=${this._closeSettings}
+          @open-app-picker=${this._openAppPicker}
+        ></shield-settings-dialog>
       </ha-card>
     `;
   }
@@ -207,6 +265,15 @@ export class ShieldRemoteCard extends LitElement {
       gap: 16px;
       background: var(--ha-card-background, var(--card-background-color));
       color: var(--primary-text-color);
+    }
+    .card-header-row {
+      display: flex;
+      justify-content: flex-end;
+      margin: -8px -8px -16px 0;
+    }
+    .card-header-row ha-icon-button {
+      --mdc-icon-button-size: 36px;
+      color: var(--secondary-text-color);
     }
     .unavailable-banner {
       font-size: 0.85em;
