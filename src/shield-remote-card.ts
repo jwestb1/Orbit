@@ -38,14 +38,17 @@ export class ShieldRemoteCard extends LitElement {
   @state() private _uiSettingsOverride: UiSettingsOverride | null = null;
 
   private _unavailableTimer?: number;
+  private _overridesLoadedForEntity?: string;
+  private _overridesLoadToken = 0;
 
   setConfig(config: ShieldRemoteCardConfig): void {
     if (!config.remote_entity) {
       throw new Error("shield-remote-card: 'remote_entity' is required");
     }
     this._config = config;
-    this._appsOverride = loadOverride(config.remote_entity);
-    this._uiSettingsOverride = loadUiSettings(config.remote_entity);
+    // Overrides are loaded from willUpdate() once `hass` is confirmed
+    // present — setConfig() can't be awaited by Lovelace and `hass` isn't
+    // guaranteed assigned yet at this point.
   }
 
   private get _apps(): AppShortcut[] {
@@ -111,7 +114,16 @@ export class ShieldRemoteCard extends LitElement {
   }
 
   protected willUpdate(changed: PropertyValues): void {
-    if (!this._config || !changed.has("hass")) return;
+    if (!this._config) return;
+
+    if (this.hass && this._overridesLoadedForEntity !== this._config.remote_entity) {
+      this._overridesLoadedForEntity = this._config.remote_entity;
+      this._appsOverride = null;
+      this._uiSettingsOverride = null;
+      this._loadOverrides(this._config.remote_entity);
+    }
+
+    if (!changed.has("hass")) return;
 
     const stateObj = this.hass.states[this._config.remote_entity];
     const unavailable = !stateObj || stateObj.state === "unavailable";
@@ -129,6 +141,19 @@ export class ShieldRemoteCard extends LitElement {
         this._showUnavailable = true;
       }, UNAVAILABLE_GRACE_MS);
     }
+  }
+
+  private _loadOverrides(remoteEntity: string): void {
+    const token = ++this._overridesLoadToken;
+    const hass = this.hass;
+    void loadOverride(hass, remoteEntity).then((apps) => {
+      if (token !== this._overridesLoadToken) return;
+      this._appsOverride = apps;
+    });
+    void loadUiSettings(hass, remoteEntity).then((settings) => {
+      if (token !== this._overridesLoadToken) return;
+      this._uiSettingsOverride = settings;
+    });
   }
 
   private _openTextInput = (): void => {
@@ -151,20 +176,20 @@ export class ShieldRemoteCard extends LitElement {
     this._appPickerOpen = true;
   };
 
-  private _closeAppPicker = (): void => {
+  private _closeAppPicker = (e: CustomEvent<{ apps: AppShortcut[] | null } | undefined>): void => {
     this._appPickerOpen = false;
-    // Picks up a Save; harmless no-op re-read on Cancel.
-    this._appsOverride = loadOverride(this._config.remote_entity);
+    // Missing detail = Cancel/dismiss, no change; otherwise a completed Save/Reset.
+    if (e.detail) this._appsOverride = e.detail.apps;
   };
 
   private _openSettings = (): void => {
     this._settingsOpen = true;
   };
 
-  private _closeSettings = (): void => {
+  private _closeSettings = (e: CustomEvent<{ settings: UiSettingsOverride | null } | undefined>): void => {
     this._settingsOpen = false;
-    // Picks up a Save; harmless no-op re-read on Cancel.
-    this._uiSettingsOverride = loadUiSettings(this._config.remote_entity);
+    // Missing detail = Cancel/dismiss, no change; otherwise a completed Save/Reset.
+    if (e.detail) this._uiSettingsOverride = e.detail.settings;
   };
 
   render() {
@@ -243,6 +268,7 @@ export class ShieldRemoteCard extends LitElement {
           @app-picker-closed=${this._closeAppPicker}
         ></shield-app-picker-dialog>
         <shield-settings-dialog
+          .hass=${this.hass}
           .open=${this._settingsOpen}
           .remoteEntity=${this._config.remote_entity}
           .trackpadHeight=${this._trackpadHeight}

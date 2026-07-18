@@ -19,12 +19,16 @@ export class ShieldAppPickerDialog extends LitElement {
   @property({ attribute: false }) configDefaultApps: AppShortcut[] = [];
 
   @state() private _draftApps: AppShortcut[] = [];
+  @state() private _saving = false;
+  @state() private _error: string | null = null;
 
   protected updated(changed: Map<string, unknown>): void {
     // Only re-seed on the closed->open transition, so an in-flight hass
     // update while the dialog is open doesn't clobber unsaved edits.
     if (changed.has("open") && this.open) {
       this._draftApps = [...this.apps];
+      this._saving = false;
+      this._error = null;
     }
   }
 
@@ -82,25 +86,45 @@ export class ShieldAppPickerDialog extends LitElement {
     this._replaceManualEntries([...this._manualEntries, { name: "", icon: "mdi:apps", package: "" }]);
   }
 
-  private _close = (): void => {
-    this.dispatchEvent(new CustomEvent("app-picker-closed", { bubbles: true, composed: true }));
+  private _close = (detail?: { apps: AppShortcut[] | null }): void => {
+    this.dispatchEvent(new CustomEvent("app-picker-closed", { detail, bubbles: true, composed: true }));
+  };
+
+  // Native ha-dialog dismiss (ESC/backdrop) — treat as Cancel, not a save.
+  private _onDialogClosed = (): void => {
+    this._close();
   };
 
   private _cancel = (): void => {
     this._close();
   };
 
-  private _reset = (): void => {
-    clearOverride(this.remoteEntity);
-    this._close();
+  private _reset = async (): Promise<void> => {
+    this._saving = true;
+    this._error = null;
+    const ok = await clearOverride(this.hass, this.remoteEntity);
+    this._saving = false;
+    if (!ok) {
+      this._error = "Couldn't reset shortcuts — check your connection and try again.";
+      return;
+    }
+    this._close({ apps: null });
   };
 
-  private _save = (): void => {
+  private _save = async (): Promise<void> => {
+    this._saving = true;
+    this._error = null;
     const catalogEntries = DEFAULT_APPS.map((catalogApp) =>
       this._draftApps.find((a) => a.package === catalogApp.package)
     ).filter((a): a is AppShortcut => !!a);
-    saveOverride(this.remoteEntity, [...catalogEntries, ...this._manualEntries]);
-    this._close();
+    const apps = [...catalogEntries, ...this._manualEntries];
+    const ok = await saveOverride(this.hass, this.remoteEntity, apps);
+    this._saving = false;
+    if (!ok) {
+      this._error = "Couldn't save shortcuts — check your connection and try again.";
+      return;
+    }
+    this._close({ apps });
   };
 
   render() {
@@ -109,9 +133,11 @@ export class ShieldAppPickerDialog extends LitElement {
     const manual = this._manualEntries;
 
     return html`
-      <ha-dialog open .heading=${"Customize app shortcuts"} @closed=${this._close}>
+      <ha-dialog open .heading=${"Customize app shortcuts"} @closed=${this._onDialogClosed}>
         <div class="content">
-          <p class="hint">Saved in this browser only — overrides the dashboard's configured app list.</p>
+          <p class="hint">
+            Synced to your Home Assistant account — overrides the dashboard's configured app list.
+          </p>
 
           <div class="section-title">Default apps</div>
           ${DEFAULT_APPS.map(
@@ -185,10 +211,13 @@ export class ShieldAppPickerDialog extends LitElement {
           <ha-icon-button .label=${"Add custom shortcut"} @click=${this._addManual}>
             <ha-icon icon="mdi:plus"></ha-icon>
           </ha-icon-button>
+          ${this._error ? html`<p class="hint error">${this._error}</p>` : ""}
         </div>
         <mwc-button slot="secondaryAction" @click=${this._cancel}>Cancel</mwc-button>
-        <mwc-button slot="secondaryAction" @click=${this._reset}>Reset to default</mwc-button>
-        <mwc-button slot="primaryAction" @click=${this._save}>Save</mwc-button>
+        <mwc-button slot="secondaryAction" .disabled=${this._saving} @click=${this._reset}
+          >Reset to default</mwc-button
+        >
+        <mwc-button slot="primaryAction" .disabled=${this._saving} @click=${this._save}>Save</mwc-button>
       </ha-dialog>
     `;
   }
@@ -204,6 +233,9 @@ export class ShieldAppPickerDialog extends LitElement {
       margin: 0 0 4px;
       font-size: 0.8em;
       color: var(--secondary-text-color);
+    }
+    .hint.error {
+      color: var(--error-color, #db4437);
     }
     .section-title {
       font-weight: 500;
