@@ -2,14 +2,16 @@ import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type { HomeAssistant } from "custom-card-helpers";
 import { saveOverride, clearOverride } from "../lib/app-shortcuts-storage";
-import { DEFAULT_APPS } from "../const";
+import { debounce } from "../lib/debounce";
+import { AUTOSAVE_DEBOUNCE_MS, DEFAULT_APPS } from "../const";
 import type { AppShortcut } from "../types";
 
 const CATALOG_PACKAGES = new Set(DEFAULT_APPS.map((app) => app.package));
 
 // Lets the user toggle shortcuts on/off from the built-in default catalog
 // and hand-edit custom package-based shortcuts, without leaving the
-// dashboard's normal (non-edit) view.
+// dashboard's normal (non-edit) view. Edits apply live and auto-save
+// (debounced) to the user's HA account — no explicit Save step.
 @customElement("shield-app-picker-dialog")
 export class ShieldAppPickerDialog extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
@@ -22,6 +24,10 @@ export class ShieldAppPickerDialog extends LitElement {
   @state() private _saving = false;
   @state() private _error: string | null = null;
 
+  private _debouncedSave = debounce(() => {
+    void this._commitSave();
+  }, AUTOSAVE_DEBOUNCE_MS);
+
   protected updated(changed: Map<string, unknown>): void {
     // Only re-seed on the closed->open transition, so an in-flight hass
     // update while the dialog is open doesn't clobber unsaved edits.
@@ -32,13 +38,24 @@ export class ShieldAppPickerDialog extends LitElement {
     }
   }
 
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._debouncedSave.cancel();
+  }
+
   private get _manualEntries(): AppShortcut[] {
     return this._draftApps.filter((a) => !CATALOG_PACKAGES.has(a.package));
   }
 
+  private _setDraftApps(apps: AppShortcut[]): void {
+    this._draftApps = apps;
+    this._notifyChanged();
+    this._debouncedSave();
+  }
+
   private _replaceManualEntries(manual: AppShortcut[]): void {
     const catalogEntries = this._draftApps.filter((a) => CATALOG_PACKAGES.has(a.package));
-    this._draftApps = [...catalogEntries, ...manual];
+    this._setDraftApps([...catalogEntries, ...manual]);
   }
 
   private _isCatalogChecked(pkg: string): boolean {
@@ -51,14 +68,14 @@ export class ShieldAppPickerDialog extends LitElement {
 
   private _toggleCatalog(catalogApp: AppShortcut, checked: boolean): void {
     if (checked) {
-      this._draftApps = [...this._draftApps, { ...catalogApp }];
+      this._setDraftApps([...this._draftApps, { ...catalogApp }]);
     } else {
-      this._draftApps = this._draftApps.filter((a) => a.package !== catalogApp.package);
+      this._setDraftApps(this._draftApps.filter((a) => a.package !== catalogApp.package));
     }
   }
 
   private _updateCatalogIcon(pkg: string, icon: string): void {
-    this._draftApps = this._draftApps.map((a) => (a.package === pkg ? { ...a, icon } : a));
+    this._setDraftApps(this._draftApps.map((a) => (a.package === pkg ? { ...a, icon } : a)));
   }
 
   private _updateManual(index: number, field: "name" | "package" | "icon") {
@@ -86,32 +103,22 @@ export class ShieldAppPickerDialog extends LitElement {
     this._replaceManualEntries([...this._manualEntries, { name: "", icon: "mdi:apps", package: "" }]);
   }
 
-  private _close = (detail?: { apps: AppShortcut[] | null }): void => {
-    this.dispatchEvent(new CustomEvent("app-picker-closed", { detail, bubbles: true, composed: true }));
+  private _notifyChanged(): void {
+    this.dispatchEvent(
+      new CustomEvent("app-picker-changed", {
+        detail: { apps: this._draftApps },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  private _close = (): void => {
+    this._debouncedSave.flush();
+    this.dispatchEvent(new CustomEvent("app-picker-closed", { bubbles: true, composed: true }));
   };
 
-  // Native ha-dialog dismiss (ESC/backdrop) — treat as Cancel, not a save.
-  private _onDialogClosed = (): void => {
-    this._close();
-  };
-
-  private _cancel = (): void => {
-    this._close();
-  };
-
-  private _reset = async (): Promise<void> => {
-    this._saving = true;
-    this._error = null;
-    const ok = await clearOverride(this.hass, this.remoteEntity);
-    this._saving = false;
-    if (!ok) {
-      this._error = "Couldn't reset shortcuts — check your connection and try again.";
-      return;
-    }
-    this._close({ apps: null });
-  };
-
-  private _save = async (): Promise<void> => {
+  private async _commitSave(): Promise<void> {
     this._saving = true;
     this._error = null;
     const catalogEntries = DEFAULT_APPS.map((catalogApp) =>
@@ -122,9 +129,20 @@ export class ShieldAppPickerDialog extends LitElement {
     this._saving = false;
     if (!ok) {
       this._error = "Couldn't save shortcuts — check your connection and try again.";
-      return;
     }
-    this._close({ apps });
+  }
+
+  private _reset = async (): Promise<void> => {
+    this._debouncedSave.cancel();
+    this._draftApps = [...this.configDefaultApps];
+    this._notifyChanged();
+    this._saving = true;
+    this._error = null;
+    const ok = await clearOverride(this.hass, this.remoteEntity);
+    this._saving = false;
+    if (!ok) {
+      this._error = "Couldn't reset shortcuts — check your connection and try again.";
+    }
   };
 
   render() {
@@ -133,7 +151,7 @@ export class ShieldAppPickerDialog extends LitElement {
     const manual = this._manualEntries;
 
     return html`
-      <ha-dialog open .heading=${"Customize app shortcuts"} @closed=${this._onDialogClosed}>
+      <ha-dialog open .heading=${"Customize app shortcuts"} @closed=${this._close}>
         <div class="content">
           <p class="hint">
             Synced to your Home Assistant account — overrides the dashboard's configured app list.
@@ -211,13 +229,11 @@ export class ShieldAppPickerDialog extends LitElement {
           <ha-icon-button .label=${"Add custom shortcut"} @click=${this._addManual}>
             <ha-icon icon="mdi:plus"></ha-icon>
           </ha-icon-button>
+          ${this._saving ? html`<p class="hint">Saving…</p>` : ""}
           ${this._error ? html`<p class="hint error">${this._error}</p>` : ""}
         </div>
-        <mwc-button slot="secondaryAction" @click=${this._cancel}>Cancel</mwc-button>
-        <mwc-button slot="secondaryAction" .disabled=${this._saving} @click=${this._reset}
-          >Reset to default</mwc-button
-        >
-        <mwc-button slot="primaryAction" .disabled=${this._saving} @click=${this._save}>Save</mwc-button>
+        <mwc-button slot="secondaryAction" @click=${this._reset}>Reset to default</mwc-button>
+        <mwc-button slot="primaryAction" @click=${this._close}>Close</mwc-button>
       </ha-dialog>
     `;
   }

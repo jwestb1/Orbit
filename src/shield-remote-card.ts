@@ -176,20 +176,24 @@ export class ShieldRemoteCard extends LitElement {
     this._appPickerOpen = true;
   };
 
-  private _closeAppPicker = (e: CustomEvent<{ apps: AppShortcut[] | null } | undefined>): void => {
+  private _closeAppPicker = (): void => {
     this._appPickerOpen = false;
-    // Missing detail = Cancel/dismiss, no change; otherwise a completed Save/Reset.
-    if (e.detail) this._appsOverride = e.detail.apps;
+  };
+
+  private _appPickerChanged = (e: CustomEvent<{ apps: AppShortcut[] }>): void => {
+    this._appsOverride = e.detail.apps;
   };
 
   private _openSettings = (): void => {
     this._settingsOpen = true;
   };
 
-  private _closeSettings = (e: CustomEvent<{ settings: UiSettingsOverride | null } | undefined>): void => {
+  private _closeSettings = (): void => {
     this._settingsOpen = false;
-    // Missing detail = Cancel/dismiss, no change; otherwise a completed Save/Reset.
-    if (e.detail) this._uiSettingsOverride = e.detail.settings;
+  };
+
+  private _settingsChanged = (e: CustomEvent<{ settings: UiSettingsOverride }>): void => {
+    this._uiSettingsOverride = e.detail.settings;
   };
 
   render() {
@@ -265,6 +269,7 @@ export class ShieldRemoteCard extends LitElement {
           .remoteEntity=${this._config.remote_entity}
           .apps=${this._apps}
           .configDefaultApps=${this._config.apps ?? DEFAULT_APPS}
+          @app-picker-changed=${this._appPickerChanged}
           @app-picker-closed=${this._closeAppPicker}
         ></shield-app-picker-dialog>
         <shield-settings-dialog
@@ -274,6 +279,7 @@ export class ShieldRemoteCard extends LitElement {
           .trackpadHeight=${this._trackpadHeight}
           .dpadButtonSize=${this._dpadButtonSize}
           .sensitivity=${this._sensitivity}
+          @settings-changed=${this._settingsChanged}
           @settings-closed=${this._closeSettings}
           @open-app-picker=${this._openAppPicker}
         ></shield-settings-dialog>

@@ -68,6 +68,10 @@ export const DEFAULT_DPAD_BUTTON_SIZE_PX = 44;
 // ~15s disconnect/reconnect blips (spec §3.4) don't flicker the UI.
 export const UNAVAILABLE_GRACE_MS = 2000;
 
+// Delay before an in-card customization dialog auto-saves an edit to the
+// server, so a slider drag or a run of keystrokes coalesces into one write.
+export const AUTOSAVE_DEBOUNCE_MS = 500;
+
 // Relevant bits of media_player's SUPPORT_* feature bitmask (HA core const.py)
 export const MEDIA_PLAYER_FEATURE = {
   VOLUME_SET: 4,

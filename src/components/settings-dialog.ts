@@ -2,7 +2,9 @@ import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type { HomeAssistant } from "custom-card-helpers";
 import { saveUiSettings, clearUiSettings } from "../lib/ui-settings-storage";
+import { debounce } from "../lib/debounce";
 import {
+  AUTOSAVE_DEBOUNCE_MS,
   DEFAULT_DPAD_BUTTON_SIZE_PX,
   DEFAULT_TRACKPAD_HEIGHT_PX,
   DEFAULT_TRACKPAD_SENSITIVITY_PX,
@@ -10,8 +12,9 @@ import {
 import type { UiSettingsOverride } from "../types";
 
 // Lets the user resize the trackpad/d-pad and tune scroll speed straight
-// from the live dashboard (synced to their HA account), without entering
-// dashboard edit mode. Mirrors shield-app-picker-dialog's draft/save/reset shape.
+// from the live dashboard, without entering dashboard edit mode. Edits
+// apply live and auto-save (debounced) to the user's HA account — no
+// explicit Save step. Mirrors shield-app-picker-dialog's shape.
 @customElement("shield-settings-dialog")
 export class ShieldSettingsDialog extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
@@ -29,6 +32,10 @@ export class ShieldSettingsDialog extends LitElement {
   @state() private _saving = false;
   @state() private _error: string | null = null;
 
+  private _debouncedSave = debounce(() => {
+    void this._commitSave();
+  }, AUTOSAVE_DEBOUNCE_MS);
+
   protected updated(changed: Map<string, unknown>): void {
     // Only re-seed on the closed->open transition, so an in-flight prop
     // update while the dialog is open doesn't clobber unsaved edits.
@@ -43,41 +50,51 @@ export class ShieldSettingsDialog extends LitElement {
     }
   }
 
-  private _close = (detail?: { settings: UiSettingsOverride | null }): void => {
-    this.dispatchEvent(new CustomEvent("settings-closed", { detail, bubbles: true, composed: true }));
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._debouncedSave.cancel();
+  }
+
+  private _notifyChanged(): void {
+    this.dispatchEvent(
+      new CustomEvent("settings-changed", {
+        detail: { settings: this._draft },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  private _close = (): void => {
+    this._debouncedSave.flush();
+    this.dispatchEvent(new CustomEvent("settings-closed", { bubbles: true, composed: true }));
   };
 
-  // Native ha-dialog dismiss (ESC/backdrop) — treat as Cancel, not a save.
-  private _onDialogClosed = (): void => {
-    this._close();
-  };
-
-  private _cancel = (): void => {
-    this._close();
-  };
-
-  private _reset = async (): Promise<void> => {
-    this._saving = true;
-    this._error = null;
-    const ok = await clearUiSettings(this.hass, this.remoteEntity);
-    this._saving = false;
-    if (!ok) {
-      this._error = "Couldn't reset settings — check your connection and try again.";
-      return;
-    }
-    this._close({ settings: null });
-  };
-
-  private _save = async (): Promise<void> => {
+  private async _commitSave(): Promise<void> {
     this._saving = true;
     this._error = null;
     const ok = await saveUiSettings(this.hass, this.remoteEntity, this._draft);
     this._saving = false;
     if (!ok) {
       this._error = "Couldn't save settings — check your connection and try again.";
-      return;
     }
-    this._close({ settings: this._draft });
+  }
+
+  private _reset = async (): Promise<void> => {
+    this._debouncedSave.cancel();
+    this._draft = {
+      trackpadHeight: DEFAULT_TRACKPAD_HEIGHT_PX,
+      dpadButtonSize: DEFAULT_DPAD_BUTTON_SIZE_PX,
+      sensitivity: DEFAULT_TRACKPAD_SENSITIVITY_PX,
+    };
+    this._notifyChanged();
+    this._saving = true;
+    this._error = null;
+    const ok = await clearUiSettings(this.hass, this.remoteEntity);
+    this._saving = false;
+    if (!ok) {
+      this._error = "Couldn't reset settings — check your connection and try again.";
+    }
   };
 
   private _openAppPicker = (): void => {
@@ -89,6 +106,8 @@ export class ShieldSettingsDialog extends LitElement {
     return (e: Event): void => {
       const value = Number((e.target as HTMLInputElement).value);
       this._draft = { ...this._draft, [field]: value };
+      this._notifyChanged();
+      this._debouncedSave();
     };
   }
 
@@ -96,7 +115,7 @@ export class ShieldSettingsDialog extends LitElement {
     if (!this.open) return html``;
 
     return html`
-      <ha-dialog open .heading=${"Settings"} @closed=${this._onDialogClosed}>
+      <ha-dialog open .heading=${"Settings"} @closed=${this._close}>
         <div class="content">
           <div class="section">
             <div class="section-title">Trackpad size</div>
@@ -148,14 +167,11 @@ export class ShieldSettingsDialog extends LitElement {
             <mwc-button @click=${this._openAppPicker}>Customize app shortcuts…</mwc-button>
           </div>
 
-          <p class="hint">Synced to your Home Assistant account.</p>
+          <p class="hint">${this._saving ? "Saving…" : "Synced to your Home Assistant account."}</p>
           ${this._error ? html`<p class="hint error">${this._error}</p>` : ""}
         </div>
-        <mwc-button slot="secondaryAction" @click=${this._cancel}>Cancel</mwc-button>
-        <mwc-button slot="secondaryAction" .disabled=${this._saving} @click=${this._reset}
-          >Reset to default</mwc-button
-        >
-        <mwc-button slot="primaryAction" .disabled=${this._saving} @click=${this._save}>Save</mwc-button>
+        <mwc-button slot="secondaryAction" @click=${this._reset}>Reset to default</mwc-button>
+        <mwc-button slot="primaryAction" @click=${this._close}>Close</mwc-button>
       </ha-dialog>
     `;
   }
