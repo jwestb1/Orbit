@@ -66,9 +66,11 @@ apps:
 
 The button row includes a keyboard icon that opens a small text-input sheet.
 Whatever you type is sent as a single `text:<value>` command (the protocol's
-IME-injection prefix, §3.3 of the spec) to whatever field is currently
-focused on the Shield — handy for search boxes and login forms without
-hunting-and-pecking with the D-pad.
+IME-injection prefix, §3.3 of the spec) — handy for search boxes and login
+forms without hunting-and-pecking with the D-pad. **A text field must already
+be focused on the Shield** (e.g. tap into a search box there first): the
+protocol only routes typed text to whatever field the TV itself currently has
+active, and silently drops it otherwise.
 
 ## Status
 
