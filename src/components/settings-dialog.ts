@@ -1,5 +1,6 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+import type { HomeAssistant } from "custom-card-helpers";
 import { saveUiSettings, clearUiSettings } from "../lib/ui-settings-storage";
 import {
   DEFAULT_DPAD_BUTTON_SIZE_PX,
@@ -9,10 +10,11 @@ import {
 import type { UiSettingsOverride } from "../types";
 
 // Lets the user resize the trackpad/d-pad and tune scroll speed straight
-// from the live dashboard (saved per-browser), without entering dashboard
-// edit mode. Mirrors shield-app-picker-dialog's draft/save/reset shape.
+// from the live dashboard (synced to their HA account), without entering
+// dashboard edit mode. Mirrors shield-app-picker-dialog's draft/save/reset shape.
 @customElement("shield-settings-dialog")
 export class ShieldSettingsDialog extends LitElement {
+  @property({ attribute: false }) hass!: HomeAssistant;
   @property({ type: Boolean }) open = false;
   @property({ attribute: false }) remoteEntity!: string;
   @property({ type: Number }) trackpadHeight = DEFAULT_TRACKPAD_HEIGHT_PX;
@@ -24,6 +26,8 @@ export class ShieldSettingsDialog extends LitElement {
     dpadButtonSize: DEFAULT_DPAD_BUTTON_SIZE_PX,
     sensitivity: DEFAULT_TRACKPAD_SENSITIVITY_PX,
   };
+  @state() private _saving = false;
+  @state() private _error: string | null = null;
 
   protected updated(changed: Map<string, unknown>): void {
     // Only re-seed on the closed->open transition, so an in-flight prop
@@ -34,25 +38,46 @@ export class ShieldSettingsDialog extends LitElement {
         dpadButtonSize: this.dpadButtonSize,
         sensitivity: this.sensitivity,
       };
+      this._saving = false;
+      this._error = null;
     }
   }
 
-  private _close = (): void => {
-    this.dispatchEvent(new CustomEvent("settings-closed", { bubbles: true, composed: true }));
+  private _close = (detail?: { settings: UiSettingsOverride | null }): void => {
+    this.dispatchEvent(new CustomEvent("settings-closed", { detail, bubbles: true, composed: true }));
+  };
+
+  // Native ha-dialog dismiss (ESC/backdrop) — treat as Cancel, not a save.
+  private _onDialogClosed = (): void => {
+    this._close();
   };
 
   private _cancel = (): void => {
     this._close();
   };
 
-  private _reset = (): void => {
-    clearUiSettings(this.remoteEntity);
-    this._close();
+  private _reset = async (): Promise<void> => {
+    this._saving = true;
+    this._error = null;
+    const ok = await clearUiSettings(this.hass, this.remoteEntity);
+    this._saving = false;
+    if (!ok) {
+      this._error = "Couldn't reset settings — check your connection and try again.";
+      return;
+    }
+    this._close({ settings: null });
   };
 
-  private _save = (): void => {
-    saveUiSettings(this.remoteEntity, this._draft);
-    this._close();
+  private _save = async (): Promise<void> => {
+    this._saving = true;
+    this._error = null;
+    const ok = await saveUiSettings(this.hass, this.remoteEntity, this._draft);
+    this._saving = false;
+    if (!ok) {
+      this._error = "Couldn't save settings — check your connection and try again.";
+      return;
+    }
+    this._close({ settings: this._draft });
   };
 
   private _openAppPicker = (): void => {
@@ -71,7 +96,7 @@ export class ShieldSettingsDialog extends LitElement {
     if (!this.open) return html``;
 
     return html`
-      <ha-dialog open .heading=${"Settings"} @closed=${this._close}>
+      <ha-dialog open .heading=${"Settings"} @closed=${this._onDialogClosed}>
         <div class="content">
           <div class="section">
             <div class="section-title">Trackpad size</div>
@@ -123,11 +148,14 @@ export class ShieldSettingsDialog extends LitElement {
             <mwc-button @click=${this._openAppPicker}>Customize app shortcuts…</mwc-button>
           </div>
 
-          <p class="hint">Saved in this browser only.</p>
+          <p class="hint">Synced to your Home Assistant account.</p>
+          ${this._error ? html`<p class="hint error">${this._error}</p>` : ""}
         </div>
         <mwc-button slot="secondaryAction" @click=${this._cancel}>Cancel</mwc-button>
-        <mwc-button slot="secondaryAction" @click=${this._reset}>Reset to default</mwc-button>
-        <mwc-button slot="primaryAction" @click=${this._save}>Save</mwc-button>
+        <mwc-button slot="secondaryAction" .disabled=${this._saving} @click=${this._reset}
+          >Reset to default</mwc-button
+        >
+        <mwc-button slot="primaryAction" .disabled=${this._saving} @click=${this._save}>Save</mwc-button>
       </ha-dialog>
     `;
   }
@@ -165,6 +193,9 @@ export class ShieldSettingsDialog extends LitElement {
       margin: 0;
       font-size: 0.8em;
       color: var(--secondary-text-color);
+    }
+    .hint.error {
+      color: var(--error-color, #db4437);
     }
   `;
 }
