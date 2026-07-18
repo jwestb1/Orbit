@@ -1,5 +1,5 @@
 import { LitElement, html, css } from "lit";
-import { customElement, property, query, state } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
 import type { HomeAssistant } from "custom-card-helpers";
 import { HaService } from "../lib/ha-service";
 import { triggerHaptic } from "../lib/haptics";
@@ -15,14 +15,6 @@ export class ShieldTextInputSheet extends LitElement {
   @property({ type: Boolean }) open = false;
 
   @state() private _value = "";
-
-  @query("ha-textfield") private _field?: HTMLElement & { focus: () => void };
-
-  protected updated(changed: Map<string, unknown>): void {
-    if (changed.has("open") && this.open) {
-      requestAnimationFrame(() => this._field?.focus());
-    }
-  }
 
   private _close = (): void => {
     this._value = "";
@@ -53,12 +45,16 @@ export class ShieldTextInputSheet extends LitElement {
       <ha-dialog open .heading=${"Type on Shield"} @closed=${this._close}>
         <div class="content">
           <ha-textfield
+            dialogInitialFocus
             .label=${"Text"}
             .value=${this._value}
             @input=${this._onInput}
             @keydown=${this._onKeydown}
           ></ha-textfield>
-          <p class="hint">Sends to whatever field is currently focused on the Shield.</p>
+          <p class="hint">
+            Only works while a text field is focused on the Shield (e.g. a search box) —
+            open one there first, then type here.
+          </p>
         </div>
         <mwc-button slot="secondaryAction" @click=${this._close}>Close</mwc-button>
         <mwc-button slot="primaryAction" @click=${this._send}>Send</mwc-button>
