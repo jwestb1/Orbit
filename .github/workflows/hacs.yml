@@ -22,13 +22,26 @@ jobs:
       # hacs/action has no release tag newer than 22.5.0 (2022); the project
       # ships fixes on main, so we pin to a specific commit instead of the
       # floating @main ref. Bump via the SHA comment date when Dependabot flags it.
-      - uses: hacs/action@1ebf01c408f29afcb6406bd431bc98fd8cbb15aa # main @ 2026-06-08
+      #
+      # Two independent checks below (Plugin, Integration) since this repo is
+      # added to HACS twice, once per category. `if: always()` on the second
+      # step is required — GitHub Actions stops a job after a failing step by
+      # default, which would otherwise silently skip the Integration check
+      # any time the Plugin check fails (as it currently does — see note).
+      - name: Validate Plugin (Dashboard) category
+        uses: hacs/action@1ebf01c408f29afcb6406bd431bc98fd8cbb15aa # main @ 2026-06-08
         with:
           category: plugin
-      # Same repo, validated a second time under the Integration category —
-      # this repo is added twice in HACS (once per category), since
-      # custom_components/orbit and the Lovelace card are distributed
-      # together from one repo.
-      - uses: hacs/action@1ebf01c408f29afcb6406bd431bc98fd8cbb15aa # main @ 2026-06-08
+      # NOTE: this will fail until the next tagged release, because HACS's
+      # plugin validator resolves hacs.json's `filename` against the most
+      # recent GitHub Release's assets (content_in_root: false) — see
+      # https://github.com/hacs/integration/blob/main/custom_components/hacs/repositories/plugin.py.
+      # The last release (v0.3.9) shipped the pre-rebrand asset name
+      # shield-remote-card.js; hacs.json now points at orbit-remote-card.js,
+      # which release.yml will publish correctly on the next vX.Y.Z tag,
+      # after which this check passes again. Not a workflow bug.
+      - name: Validate Integration category
+        if: always()
+        uses: hacs/action@1ebf01c408f29afcb6406bd431bc98fd8cbb15aa # main @ 2026-06-08
         with:
           category: integration
