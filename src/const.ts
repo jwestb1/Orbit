@@ -1,8 +1,11 @@
 import type { AppShortcut } from "./types";
 
-export const CARD_TYPE = "shield-remote-card";
-export const CARD_NAME = "Nvidia Shield Remote";
-export const CARD_DESCRIPTION = "Trackpad, D-pad and app shortcuts for Android TV / Shield.";
+export const CARD_TYPE = "orbit-remote-card";
+// Permanent alias — keeps existing dashboards' `type: custom:shield-remote-card`
+// YAML working indefinitely after the rebrand. Never remove.
+export const LEGACY_CARD_TYPE = "shield-remote-card";
+export const CARD_NAME = "Orbit Remote";
+export const CARD_DESCRIPTION = "Trackpad, D-pad and app shortcuts for Android TV boxes.";
 
 // Subset of the protobuf RemoteKeyCode enum relevant to this card (spec §3.3)
 export const KEYCODE = {

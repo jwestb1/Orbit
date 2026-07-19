@@ -13,12 +13,31 @@ export interface TrackpadConfig {
   long_press_action?: string;
 }
 
-export interface ShieldRemoteCardConfig extends LovelaceCardConfig {
-  type: string;
+// One box in switcher mode. `id` is a stable key for tab selection and
+// personal-override storage; falls back to `remote_entity` when omitted, so
+// hand-authored YAML doesn't need to invent one.
+export interface BoxConfig {
+  id?: string;
+  name?: string;
   remote_entity: string;
   media_player_entity?: string;
-  trackpad?: TrackpadConfig;
   apps?: AppShortcut[];
+}
+
+export interface OrbitRemoteCardConfig extends LovelaceCardConfig {
+  type: string;
+  // Inferred from `boxes` presence when omitted: "switcher" if non-empty,
+  // otherwise "single".
+  mode?: "single" | "switcher";
+  // Single-box shape — required when `boxes` is absent (enforced in
+  // setConfig, not the type, since the two shapes are mutually exclusive).
+  remote_entity?: string;
+  media_player_entity?: string;
+  apps?: AppShortcut[];
+  // Switcher shape.
+  boxes?: BoxConfig[];
+  default_box?: string;
+  trackpad?: TrackpadConfig;
   haptics?: boolean;
   theme?: "auto" | "light" | "dark";
 }

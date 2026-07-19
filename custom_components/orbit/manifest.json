@@ -1,0 +1,13 @@
+{
+  "domain": "orbit",
+  "name": "Orbit",
+  "config_flow": true,
+  "iot_class": "calculated",
+  "integration_type": "helper",
+  "codeowners": ["@jwestb1"],
+  "documentation": "https://github.com/jwestb1/Orbit",
+  "issue_tracker": "https://github.com/jwestb1/Orbit/issues",
+  "requirements": [],
+  "after_dependencies": ["frontend"],
+  "version": "0.4.0"
+}

@@ -6,8 +6,8 @@ import { DEFAULT_APPS } from "../const";
 import { triggerHaptic } from "../lib/haptics";
 import type { AppShortcut } from "../types";
 
-@customElement("shield-app-grid")
-export class ShieldAppGrid extends LitElement {
+@customElement("orbit-app-grid")
+export class OrbitAppGrid extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ attribute: false }) entity!: string;
   @property({ attribute: false }) apps: AppShortcut[] = DEFAULT_APPS;
@@ -76,6 +76,6 @@ export class ShieldAppGrid extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "shield-app-grid": ShieldAppGrid;
+    "orbit-app-grid": OrbitAppGrid;
   }
 }

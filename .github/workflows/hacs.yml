@@ -25,3 +25,10 @@ jobs:
       - uses: hacs/action@1ebf01c408f29afcb6406bd431bc98fd8cbb15aa # main @ 2026-06-08
         with:
           category: plugin
+      # Same repo, validated a second time under the Integration category —
+      # this repo is added twice in HACS (once per category), since
+      # custom_components/orbit and the Lovelace card are distributed
+      # together from one repo.
+      - uses: hacs/action@1ebf01c408f29afcb6406bd431bc98fd8cbb15aa # main @ 2026-06-08
+        with:
+          category: integration

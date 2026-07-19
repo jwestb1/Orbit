@@ -19,6 +19,18 @@ jobs:
         with:
           node-version: "24"
           cache: "npm"
+      # HACS installs the Integration and Plugin halves of this repo from
+      # the same tag, so custom_components/orbit's manifest.json must be
+      # kept in lockstep with the tag being released — catch drift here
+      # rather than shipping an Integration install stuck on a stale version.
+      - name: Verify custom_components/orbit manifest version matches tag
+        run: |
+          tag_version="${GITHUB_REF_NAME#v}"
+          manifest_version=$(node -p "require('./custom_components/orbit/manifest.json').version")
+          if [ "$tag_version" != "$manifest_version" ]; then
+            echo "::error::Tag v$tag_version does not match custom_components/orbit/manifest.json version $manifest_version"
+            exit 1
+          fi
       - run: npm ci
       - run: npm audit --audit-level=high
       - run: npx tsc --noEmit
@@ -26,5 +38,5 @@ jobs:
       - run: npm run build
       - uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
         with:
-          files: dist/shield-remote-card.js
+          files: dist/orbit-remote-card.js
           generate_release_notes: true

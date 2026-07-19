@@ -5,8 +5,8 @@ import { HaService } from "../lib/ha-service";
 import { KEYCODE } from "../const";
 import { triggerHaptic } from "../lib/haptics";
 
-@customElement("shield-media-row")
-export class ShieldMediaRow extends LitElement {
+@customElement("orbit-media-row")
+export class OrbitMediaRow extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ attribute: false }) entity!: string;
   @property({ type: Boolean }) haptics?: boolean;
@@ -66,6 +66,6 @@ export class ShieldMediaRow extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "shield-media-row": ShieldMediaRow;
+    "orbit-media-row": OrbitMediaRow;
   }
 }

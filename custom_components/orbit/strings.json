@@ -1,0 +1,71 @@
+{
+  "title": "Orbit",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up Orbit",
+        "description": "Orbit manages the Android TV boxes your Orbit Lovelace cards can control. After finishing this step, use \"Add box\" on the Orbit integration tile to add each box, discovered from your existing Android TV Remote (androidtv_remote) entries."
+      }
+    },
+    "abort": {
+      "already_configured": "Orbit is already set up. Use \"Add box\" on the existing Orbit integration tile to add more boxes."
+    }
+  },
+  "config_subentries": {
+    "box": {
+      "entry_type": "Box",
+      "initiate_flow": {
+        "user": "Add box"
+      },
+      "step": {
+        "user": {
+          "title": "Add a box",
+          "description": "Pick an Android TV box exposed by the Android TV Remote (androidtv_remote) integration.",
+          "data": {
+            "remote_entity_id": "Box",
+            "name": "Name (optional)"
+          }
+        },
+        "reconfigure": {
+          "title": "Edit box",
+          "description": "Rename this box or point it at a different entity.",
+          "data": {
+            "remote_entity_id": "Box",
+            "name": "Name (optional)"
+          }
+        }
+      },
+      "abort": {
+        "no_boxes_found": "No unclaimed Android TV boxes were found. Make sure the Android TV Remote (androidtv_remote) integration is set up and paired with your box first."
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Orbit options",
+        "data": {
+          "restrict_admin_only": "Restrict setup and reset to admin users",
+          "factory_reset": "Factory reset Orbit"
+        },
+        "data_description": {
+          "restrict_admin_only": "Non-admin users can still use the remote controls, but won't see setup, box management, or reset options.",
+          "factory_reset": "Check this and submit to open a confirmation step that deletes every box and clears all users' personal customizations."
+        }
+      },
+      "confirm_reset": {
+        "title": "Confirm factory reset",
+        "description": "This deletes every configured box and clears all users' personal Orbit card customizations (app shortcuts, trackpad size). This cannot be undone.",
+        "data": {
+          "confirm": "Yes, factory reset Orbit"
+        }
+      }
+    }
+  },
+  "services": {
+    "reset": {
+      "name": "Factory reset",
+      "description": "Deletes every configured box and clears all users' personal Orbit card customizations. This cannot be undone."
+    }
+  }
+}

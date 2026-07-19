@@ -1,6 +1,7 @@
 {
-  "name": "Nvidia Shield Remote",
+  "name": "Orbit Remote",
   "render_readme": true,
-  "filename": "shield-remote-card.js",
-  "content_in_root": false
+  "filename": "orbit-remote-card.js",
+  "content_in_root": false,
+  "homeassistant": "2025.2.0"
 }

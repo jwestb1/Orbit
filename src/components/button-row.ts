@@ -6,8 +6,8 @@ import { DEFAULT_LONG_PRESS_HOLD_SECS, KEYCODE } from "../const";
 import { triggerHaptic } from "../lib/haptics";
 import { LongPressController } from "../lib/long-press";
 
-@customElement("shield-button-row")
-export class ShieldButtonRow extends LitElement {
+@customElement("orbit-button-row")
+export class OrbitButtonRow extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ attribute: false }) entity!: string;
   @property({ type: Boolean }) haptics?: boolean;
@@ -125,6 +125,6 @@ export class ShieldButtonRow extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "shield-button-row": ShieldButtonRow;
+    "orbit-button-row": OrbitButtonRow;
   }
 }

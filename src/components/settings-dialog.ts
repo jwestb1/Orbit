@@ -2,6 +2,7 @@ import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type { HomeAssistant } from "custom-card-helpers";
 import { saveUiSettings, clearUiSettings } from "../lib/ui-settings-storage";
+import { clearOverride } from "../lib/app-shortcuts-storage";
 import { debounce } from "../lib/debounce";
 import {
   AUTOSAVE_DEBOUNCE_MS,
@@ -14,9 +15,9 @@ import type { UiSettingsOverride } from "../types";
 // Lets the user resize the trackpad/d-pad and tune scroll speed straight
 // from the live dashboard, without entering dashboard edit mode. Edits
 // apply live and auto-save (debounced) to the user's HA account — no
-// explicit Save step. Mirrors shield-app-picker-dialog's shape.
-@customElement("shield-settings-dialog")
-export class ShieldSettingsDialog extends LitElement {
+// explicit Save step. Mirrors orbit-app-picker-dialog's shape.
+@customElement("orbit-settings-dialog")
+export class OrbitSettingsDialog extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ type: Boolean }) open = false;
   @property({ attribute: false }) remoteEntity!: string;
@@ -102,6 +103,20 @@ export class ShieldSettingsDialog extends LitElement {
     this._close();
   };
 
+  // Separate from _reset() (display settings) so one click never resets
+  // more than the user asked for — app shortcuts and trackpad/D-pad sizing
+  // are independent customizations with independent reset actions.
+  private _resetApps = async (): Promise<void> => {
+    this.dispatchEvent(new CustomEvent("apps-reset", { bubbles: true, composed: true }));
+    this._saving = true;
+    this._error = null;
+    const ok = await clearOverride(this.hass, this.remoteEntity);
+    this._saving = false;
+    if (!ok) {
+      this._error = "Couldn't reset app shortcuts — check your connection and try again.";
+    }
+  };
+
   private _sliderChanged(field: keyof UiSettingsOverride) {
     return (e: Event): void => {
       const value = Number((e.target as HTMLInputElement).value);
@@ -164,13 +179,17 @@ export class ShieldSettingsDialog extends LitElement {
           </div>
 
           <div class="section">
-            <mwc-button @click=${this._openAppPicker}>Customize app shortcuts…</mwc-button>
+            <div class="section-title">App shortcuts</div>
+            <div class="button-row">
+              <mwc-button @click=${this._openAppPicker}>Customize…</mwc-button>
+              <mwc-button @click=${this._resetApps}>Reset to default</mwc-button>
+            </div>
           </div>
 
           <p class="hint">${this._saving ? "Saving…" : "Synced to your Home Assistant account."}</p>
           ${this._error ? html`<p class="hint error">${this._error}</p>` : ""}
         </div>
-        <mwc-button slot="secondaryAction" @click=${this._reset}>Reset to default</mwc-button>
+        <mwc-button slot="secondaryAction" @click=${this._reset}>Reset display settings</mwc-button>
         <mwc-button slot="primaryAction" @click=${this._close}>Close</mwc-button>
       </ha-dialog>
     `;
@@ -205,6 +224,10 @@ export class ShieldSettingsDialog extends LitElement {
       text-align: right;
       color: var(--secondary-text-color);
     }
+    .button-row {
+      display: flex;
+      gap: 8px;
+    }
     .hint {
       margin: 0;
       font-size: 0.8em;
@@ -218,6 +241,6 @@ export class ShieldSettingsDialog extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "shield-settings-dialog": ShieldSettingsDialog;
+    "orbit-settings-dialog": OrbitSettingsDialog;
   }
 }
