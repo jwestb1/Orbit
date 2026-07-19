@@ -20,15 +20,20 @@ jobs:
           node-version: "24"
           cache: "npm"
       # HACS installs the Integration and Plugin halves of this repo from
-      # the same tag, so custom_components/orbit's manifest.json must be
-      # kept in lockstep with the tag being released — catch drift here
-      # rather than shipping an Integration install stuck on a stale version.
-      - name: Verify custom_components/orbit manifest version matches tag
+      # the same tag, so both custom_components/orbit's manifest.json and
+      # package.json must be kept in lockstep with the tag being released —
+      # catch drift here rather than shipping a stale/half-built release.
+      - name: Verify version files match tag
         run: |
           tag_version="${GITHUB_REF_NAME#v}"
           manifest_version=$(node -p "require('./custom_components/orbit/manifest.json').version")
+          package_version=$(node -p "require('./package.json').version")
           if [ "$tag_version" != "$manifest_version" ]; then
             echo "::error::Tag v$tag_version does not match custom_components/orbit/manifest.json version $manifest_version"
+            exit 1
+          fi
+          if [ "$tag_version" != "$package_version" ]; then
+            echo "::error::Tag v$tag_version does not match package.json version $package_version"
             exit 1
           fi
       - run: npm ci

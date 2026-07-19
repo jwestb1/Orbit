@@ -9,5 +9,5 @@
   "issue_tracker": "https://github.com/jwestb1/Orbit/issues",
   "requirements": [],
   "after_dependencies": ["frontend"],
-  "version": "0.4.0"
+  "version": "0.4.1"
 }
