@@ -3,7 +3,7 @@
   "name": "Orbit",
   "config_flow": true,
   "iot_class": "calculated",
-  "integration_type": "helper",
+  "integration_type": "service",
   "codeowners": ["@jwestb1"],
   "documentation": "https://github.com/jwestb1/Orbit",
   "issue_tracker": "https://github.com/jwestb1/Orbit/issues",

@@ -53,6 +53,23 @@ describe("resolveBoxes", () => {
     ]);
   });
 
+  it("filters out box entries without a remote_entity yet (e.g. a row just added in the editor)", () => {
+    const boxes = resolveBoxes(
+      config({
+        boxes: [{ remote_entity: "remote.living_room" }, { remote_entity: "" }],
+      })
+    );
+    expect(boxes).toEqual([
+      {
+        id: "remote.living_room",
+        name: "remote.living_room",
+        remote_entity: "remote.living_room",
+        media_player_entity: undefined,
+        apps: undefined,
+      },
+    ]);
+  });
+
   it("prefers boxes over the top-level single-box fields when both are present", () => {
     const boxes = resolveBoxes(
       config({

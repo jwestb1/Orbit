@@ -45,16 +45,13 @@ export class OrbitRemoteCard extends LitElement {
   private _overridesLoadedForEntity?: string;
   private _overridesLoadToken = 0;
 
+  // Deliberately never throws for an incomplete box (e.g. no remote_entity
+  // picked yet): Lovelace's editor calls setConfig() live on every keystroke
+  // for its preview, including the stub config on a freshly-added card and
+  // an "Add box" row before its entity picker is filled in. Throwing there
+  // surfaced as a hard "Configuration error" mid-edit; render() below shows
+  // a friendly placeholder instead once resolveBoxes() finds nothing usable.
   setConfig(config: OrbitRemoteCardConfig): void {
-    const hasBoxes = !!config.boxes && config.boxes.length > 0;
-    if (!hasBoxes && !config.remote_entity) {
-      throw new Error(
-        "orbit-remote-card: 'remote_entity' is required (or provide 'boxes' for multiple boxes)"
-      );
-    }
-    if (hasBoxes && config.boxes!.some((box) => !box.remote_entity)) {
-      throw new Error("orbit-remote-card: every entry in 'boxes' requires 'remote_entity'");
-    }
     this._config = config;
     // Overrides are loaded from willUpdate() once `hass` is confirmed
     // present — setConfig() can't be awaited by Lovelace and `hass` isn't
@@ -232,7 +229,13 @@ export class OrbitRemoteCard extends LitElement {
 
   render() {
     const box = this._activeBox;
-    if (!box) return html``;
+    if (!box) {
+      return html`
+        <ha-card>
+          <div class="placeholder">Select a remote entity in the card editor to get started.</div>
+        </ha-card>
+      `;
+    }
     const unavailable = this._showUnavailable;
 
     return html`
@@ -360,6 +363,12 @@ export class OrbitRemoteCard extends LitElement {
       font-size: 0.85em;
       color: var(--error-color, #db4437);
       text-align: center;
+    }
+    .placeholder {
+      font-size: 0.9em;
+      color: var(--secondary-text-color);
+      text-align: center;
+      padding: 8px 0;
     }
     .primary-controls {
       display: flex;

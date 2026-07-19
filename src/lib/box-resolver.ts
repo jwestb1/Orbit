@@ -23,7 +23,11 @@ function toResolvedBox(box: BoxConfig): ResolvedBox {
 // boxes" plus "which one is active" — never the two config shapes directly.
 export function resolveBoxes(config: OrbitRemoteCardConfig): ResolvedBox[] {
   if (config.boxes && config.boxes.length > 0) {
-    return config.boxes.map(toResolvedBox);
+    // Drop entries still missing a `remote_entity` — e.g. a row just added
+    // in the editor before an entity has been picked yet. Treating them as
+    // "not a box yet" (rather than an invalid config) lets the card fall
+    // through to the placeholder below instead of hard-erroring mid-edit.
+    return config.boxes.filter((box) => !!box.remote_entity).map(toResolvedBox);
   }
   if (!config.remote_entity) return [];
   return [
