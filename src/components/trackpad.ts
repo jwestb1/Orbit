@@ -10,8 +10,8 @@ import type { TrackpadConfig } from "../types";
 const LONG_PRESS_MS = 500;
 const TAP_MOVE_THRESHOLD_PX = 4;
 
-@customElement("shield-trackpad")
-export class ShieldTrackpad extends LitElement {
+@customElement("orbit-trackpad")
+export class OrbitTrackpad extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ attribute: false }) entity!: string;
   @property({ attribute: false }) config: TrackpadConfig = {};
@@ -32,7 +32,7 @@ export class ShieldTrackpad extends LitElement {
 
   protected updated(changed: PropertyValues): void {
     if (changed.has("heightPx")) {
-      this.style.setProperty("--shield-trackpad-height", `${this.heightPx ?? DEFAULT_TRACKPAD_HEIGHT_PX}px`);
+      this.style.setProperty("--orbit-trackpad-height", `${this.heightPx ?? DEFAULT_TRACKPAD_HEIGHT_PX}px`);
     }
   }
 
@@ -127,7 +127,7 @@ export class ShieldTrackpad extends LitElement {
       touch-action: none;
       user-select: none;
       -webkit-user-select: none;
-      height: var(--shield-trackpad-height, 180px);
+      height: var(--orbit-trackpad-height, 180px);
       border-radius: 12px;
       background: var(--secondary-background-color, #eee);
       display: flex;
@@ -148,6 +148,6 @@ export class ShieldTrackpad extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "shield-trackpad": ShieldTrackpad;
+    "orbit-trackpad": OrbitTrackpad;
   }
 }

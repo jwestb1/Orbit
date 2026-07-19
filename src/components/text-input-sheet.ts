@@ -5,10 +5,10 @@ import { HaService } from "../lib/ha-service";
 import { triggerHaptic } from "../lib/haptics";
 
 // Small keyboard sheet that surfaces the protocol's `text:` command prefix
-// (spec §3.3) for typing into a focused search/login field on the Shield,
+// (spec §3.3) for typing into a focused search/login field on the box,
 // without hand-rolling on-screen key-by-key IME emulation.
-@customElement("shield-text-input-sheet")
-export class ShieldTextInputSheet extends LitElement {
+@customElement("orbit-text-input-sheet")
+export class OrbitTextInputSheet extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ attribute: false }) entity!: string;
   @property({ type: Boolean }) haptics?: boolean;
@@ -42,7 +42,7 @@ export class ShieldTextInputSheet extends LitElement {
   render() {
     if (!this.open) return html``;
     return html`
-      <ha-dialog open .heading=${"Type on Shield"} @closed=${this._close}>
+      <ha-dialog open .heading=${"Type on device"} @closed=${this._close}>
         <div class="content">
           <ha-textfield
             dialogInitialFocus
@@ -52,7 +52,7 @@ export class ShieldTextInputSheet extends LitElement {
             @keydown=${this._onKeydown}
           ></ha-textfield>
           <p class="hint">
-            Only works while a text field is focused on the Shield (e.g. a search box) —
+            Only works while a text field is focused on the device (e.g. a search box) —
             open one there first, then type here.
           </p>
         </div>
@@ -82,6 +82,6 @@ export class ShieldTextInputSheet extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "shield-text-input-sheet": ShieldTextInputSheet;
+    "orbit-text-input-sheet": OrbitTextInputSheet;
   }
 }

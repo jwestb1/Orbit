@@ -1,7 +1,7 @@
 {
-  "name": "shield-remote-card",
-  "version": "0.3.4",
-  "description": "Trackpad, D-pad and app shortcuts for Nvidia Shield / Android TV in Home Assistant.",
+  "name": "orbit-remote-card",
+  "version": "0.4.0",
+  "description": "Trackpad, D-pad and app shortcuts for Android TV boxes in Home Assistant.",
   "type": "module",
   "scripts": {
     "dev": "vite build --watch",
@@ -14,7 +14,8 @@
     "hacs",
     "lovelace",
     "android-tv",
-    "nvidia-shield"
+    "nvidia-shield",
+    "orbit"
   ],
   "license": "MIT",
   "dependencies": {

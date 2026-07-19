@@ -3,8 +3,8 @@ import { customElement, property } from "lit/decorators.js";
 import type { HomeAssistant } from "custom-card-helpers";
 import { MEDIA_PLAYER_FEATURE } from "../const";
 
-@customElement("shield-volume-slider")
-export class ShieldVolumeSlider extends LitElement {
+@customElement("orbit-volume-slider")
+export class OrbitVolumeSlider extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ attribute: false }) entity!: string;
   @property({ type: Boolean, reflect: true }) disabled = false;
@@ -87,6 +87,6 @@ export class ShieldVolumeSlider extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "shield-volume-slider": ShieldVolumeSlider;
+    "orbit-volume-slider": OrbitVolumeSlider;
   }
 }

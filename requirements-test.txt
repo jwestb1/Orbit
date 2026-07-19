@@ -1,0 +1,9 @@
+# Test-only dependencies for custom_components/orbit. Not needed to run the
+# card itself (that's pure TypeScript — see package.json).
+#
+# pytest-homeassistant-custom-component pulls in a matching `homeassistant`
+# core release as a transitive dependency; it's pinned explicitly here too
+# so `pip install -r requirements-test.txt` reproduces the environment these
+# tests were validated against without relying on transitive resolution.
+homeassistant==2026.2.3
+pytest-homeassistant-custom-component==0.13.316

@@ -6,8 +6,8 @@ import { DEFAULT_DPAD_BUTTON_SIZE_PX, DEFAULT_LONG_PRESS_HOLD_SECS, KEYCODE } fr
 import { triggerHaptic } from "../lib/haptics";
 import { LongPressController } from "../lib/long-press";
 
-@customElement("shield-dpad-cluster")
-export class ShieldDpadCluster extends LitElement {
+@customElement("orbit-dpad-cluster")
+export class OrbitDpadCluster extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ attribute: false }) entity!: string;
   @property({ type: Boolean }) haptics?: boolean;
@@ -17,7 +17,7 @@ export class ShieldDpadCluster extends LitElement {
   protected updated(changed: PropertyValues): void {
     if (changed.has("buttonSizePx")) {
       this.style.setProperty(
-        "--shield-dpad-button-size",
+        "--orbit-dpad-button-size",
         `${this.buttonSizePx ?? DEFAULT_DPAD_BUTTON_SIZE_PX}px`
       );
     }
@@ -91,8 +91,8 @@ export class ShieldDpadCluster extends LitElement {
     }
     .dpad {
       display: grid;
-      grid-template-columns: repeat(3, var(--shield-dpad-button-size, 44px));
-      grid-template-rows: repeat(3, var(--shield-dpad-button-size, 44px));
+      grid-template-columns: repeat(3, var(--orbit-dpad-button-size, 44px));
+      grid-template-rows: repeat(3, var(--orbit-dpad-button-size, 44px));
       justify-content: center;
       align-content: center;
       gap: 4px;
@@ -118,7 +118,7 @@ export class ShieldDpadCluster extends LitElement {
       grid-row: 3;
     }
     ha-icon-button {
-      --mdc-icon-button-size: var(--shield-dpad-button-size, 44px);
+      --mdc-icon-button-size: var(--orbit-dpad-button-size, 44px);
       transition: transform 80ms ease-out;
     }
     ha-icon-button:active {
@@ -129,6 +129,6 @@ export class ShieldDpadCluster extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "shield-dpad-cluster": ShieldDpadCluster;
+    "orbit-dpad-cluster": OrbitDpadCluster;
   }
 }

@@ -12,8 +12,8 @@ const CATALOG_PACKAGES = new Set(DEFAULT_APPS.map((app) => app.package));
 // and hand-edit custom package-based shortcuts, without leaving the
 // dashboard's normal (non-edit) view. Edits apply live and auto-save
 // (debounced) to the user's HA account — no explicit Save step.
-@customElement("shield-app-picker-dialog")
-export class ShieldAppPickerDialog extends LitElement {
+@customElement("orbit-app-picker-dialog")
+export class OrbitAppPickerDialog extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ type: Boolean }) open = false;
   @property({ attribute: false }) remoteEntity!: string;
@@ -278,6 +278,6 @@ export class ShieldAppPickerDialog extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "shield-app-picker-dialog": ShieldAppPickerDialog;
+    "orbit-app-picker-dialog": OrbitAppPickerDialog;
   }
 }

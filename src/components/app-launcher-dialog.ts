@@ -7,8 +7,8 @@ import type { AppShortcut } from "../types";
 
 // Single-button entry point for app shortcuts: tapping a tile launches the
 // app and closes the dialog immediately, like a launcher menu.
-@customElement("shield-app-launcher-dialog")
-export class ShieldAppLauncherDialog extends LitElement {
+@customElement("orbit-app-launcher-dialog")
+export class OrbitAppLauncherDialog extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ attribute: false }) entity!: string;
   @property({ attribute: false }) apps: AppShortcut[] = DEFAULT_APPS;
@@ -29,13 +29,13 @@ export class ShieldAppLauncherDialog extends LitElement {
     return html`
       <ha-dialog open .heading=${"Apps"} @closed=${this._close}>
         <div class="content">
-          <shield-app-grid
+          <orbit-app-grid
             .hass=${this.hass}
             .entity=${this.entity}
             .apps=${this.apps}
             .haptics=${this.haptics}
             @app-launched=${this._close}
-          ></shield-app-grid>
+          ></orbit-app-grid>
         </div>
         <mwc-button slot="secondaryAction" @click=${this._openCustomize}>Customize</mwc-button>
         <mwc-button slot="primaryAction" @click=${this._close}>Close</mwc-button>
@@ -52,6 +52,6 @@ export class ShieldAppLauncherDialog extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    "shield-app-launcher-dialog": ShieldAppLauncherDialog;
+    "orbit-app-launcher-dialog": OrbitAppLauncherDialog;
   }
 }
