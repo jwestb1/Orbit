@@ -98,7 +98,7 @@ async def test_box_subentry_flow_respects_custom_name(hass: HomeAssistant) -> No
     )
 
     assert result["title"] == "Kids' Room"
-    assert list(parent.subentries.values())[0].title == "Kids' Room"
+    assert next(iter(parent.subentries.values())).title == "Kids' Room"
 
 
 async def test_box_subentry_flow_excludes_already_claimed_boxes(hass: HomeAssistant) -> None:

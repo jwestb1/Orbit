@@ -7,7 +7,11 @@ from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_homeassistant_custom_component.typing import WebSocketGenerator
 
-from custom_components.orbit.const import CONF_RESTRICT_ADMIN_ONLY, DOMAIN, SUBENTRY_TYPE_BOX
+from custom_components.orbit.const import (
+    CONF_RESTRICT_ADMIN_ONLY,
+    DOMAIN,
+    SUBENTRY_TYPE_BOX,
+)
 
 
 async def test_list_boxes_returns_configured_boxes(

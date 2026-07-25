@@ -596,6 +596,8 @@ export class OrbitRemoteCard extends LitElement {
       position: relative;
       min-width: 0;
       min-height: 0;
+      background: var(--secondary-background-color, rgba(0, 0, 0, 0.06));
+      border-radius: 12px;
     }
     .grid-item-content {
       width: 100%;

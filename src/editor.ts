@@ -4,6 +4,7 @@ import { fireEvent } from "custom-card-helpers";
 import type { HomeAssistant, LovelaceCardEditor } from "custom-card-helpers";
 import { DEFAULT_APPS, DEFAULT_TRACKPAD_SENSITIVITY_PX } from "./const";
 import { tryListOrbitBoxes, type OrbitBox } from "./lib/orbit-backend";
+import { dialogSectionStyles } from "./lib/shared-styles";
 import type { AppShortcut, BoxConfig, OrbitRemoteCardConfig } from "./types";
 
 @customElement("orbit-remote-card-editor")
@@ -358,57 +359,46 @@ export class OrbitRemoteCardEditor extends LitElement implements LovelaceCardEdi
     `;
   }
 
-  static styles = css`
-    :host {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    .section {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .section-title {
-      font-weight: 500;
-      color: var(--secondary-text-color);
-    }
-    .sensitivity-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .sensitivity-row input[type="range"] {
-      flex: 1;
-    }
-    .sensitivity-value {
-      min-width: 3em;
-      text-align: right;
-      color: var(--secondary-text-color);
-    }
-    .app-row {
-      display: grid;
-      grid-template-columns: 56px 1fr 1fr auto auto auto;
-      align-items: center;
-      gap: 4px;
-    }
-    .box-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr auto auto auto;
-      align-items: center;
-      gap: 4px;
-    }
-    .hint {
-      margin: 0;
-      font-size: 0.8em;
-      color: var(--secondary-text-color);
-    }
-    .orbit-boxes {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-  `;
+  static styles = [
+    dialogSectionStyles,
+    css`
+      :host {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .sensitivity-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .sensitivity-row input[type="range"] {
+        flex: 1;
+      }
+      .sensitivity-value {
+        min-width: 3em;
+        text-align: right;
+        color: var(--secondary-text-color);
+      }
+      .app-row {
+        display: grid;
+        grid-template-columns: 56px 1fr 1fr auto auto auto;
+        align-items: center;
+        gap: 4px;
+      }
+      .box-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr auto auto auto;
+        align-items: center;
+        gap: 4px;
+      }
+      .orbit-boxes {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+    `,
+  ];
 }
 
 declare global {

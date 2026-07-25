@@ -38,6 +38,6 @@ jobs:
           # setup-python's cache only auto-detects requirements.txt/
           # pyproject.toml; our file is named requirements-test.txt.
           cache-dependency-path: requirements-test.txt
-      - run: pip install -r requirements-test.txt ruff
+      - run: pip install -r requirements-test.txt
       - run: ruff check custom_components/orbit tests
       - run: python -m pytest tests
