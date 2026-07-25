@@ -1,15 +1,16 @@
-import { LitElement, html, css, type PropertyValues } from "lit";
+import { LitElement, html, css } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type { HomeAssistant } from "custom-card-helpers";
 import { HaService } from "../lib/ha-service";
 import { GestureEngine } from "../lib/gesture-engine";
 import { triggerHaptic } from "../lib/haptics";
-import { DEFAULT_TRACKPAD_HEIGHT_PX } from "../const";
 import type { TrackpadConfig } from "../types";
 
 const LONG_PRESS_MS = 500;
 const TAP_MOVE_THRESHOLD_PX = 4;
 
+// Sized entirely by its host's grid cell (see orbit-remote-card.ts) — the
+// trackpad is a draggable/resizable layout item like any other.
 @customElement("orbit-trackpad")
 export class OrbitTrackpad extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
@@ -17,7 +18,6 @@ export class OrbitTrackpad extends LitElement {
   @property({ attribute: false }) config: TrackpadConfig = {};
   @property({ type: Boolean }) haptics?: boolean;
   @property({ type: Boolean, reflect: true }) disabled = false;
-  @property({ type: Number }) heightPx?: number;
 
   @state() private _pressed = false;
 
@@ -29,12 +29,6 @@ export class OrbitTrackpad extends LitElement {
   private _downX = 0;
   private _downY = 0;
   private _activePointers = 0;
-
-  protected updated(changed: PropertyValues): void {
-    if (changed.has("heightPx")) {
-      this.style.setProperty("--orbit-trackpad-height", `${this.heightPx ?? DEFAULT_TRACKPAD_HEIGHT_PX}px`);
-    }
-  }
 
   private _getService(): HaService {
     if (!this._service || this._serviceEntity !== this.entity) {
@@ -119,6 +113,12 @@ export class OrbitTrackpad extends LitElement {
   }
 
   static styles = css`
+    :host {
+      display: block;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+    }
     :host([disabled]) .pad {
       opacity: 0.4;
       pointer-events: none;
@@ -127,7 +127,8 @@ export class OrbitTrackpad extends LitElement {
       touch-action: none;
       user-select: none;
       -webkit-user-select: none;
-      height: var(--orbit-trackpad-height, 180px);
+      width: 100%;
+      height: 100%;
       border-radius: 12px;
       background: var(--secondary-background-color, #eee);
       display: flex;

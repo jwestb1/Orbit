@@ -4,32 +4,20 @@ import type { HomeAssistant } from "custom-card-helpers";
 import { saveUiSettings, clearUiSettings } from "../lib/ui-settings-storage";
 import { clearOverride } from "../lib/app-shortcuts-storage";
 import { debounce } from "../lib/debounce";
-import {
-  AUTOSAVE_DEBOUNCE_MS,
-  DEFAULT_DPAD_BUTTON_SIZE_PX,
-  DEFAULT_TRACKPAD_HEIGHT_PX,
-  DEFAULT_TRACKPAD_SENSITIVITY_PX,
-} from "../const";
-import type { UiSettingsOverride } from "../types";
+import { AUTOSAVE_DEBOUNCE_MS, DEFAULT_TRACKPAD_SENSITIVITY_PX } from "../const";
 
-// Lets the user resize the trackpad/d-pad and tune scroll speed straight
-// from the live dashboard, without entering dashboard edit mode. Edits
-// apply live and auto-save (debounced) to the user's HA account — no
-// explicit Save step. Mirrors orbit-app-picker-dialog's shape.
+// Lets the user tune scroll speed and jump into the card's layout edit mode
+// straight from the live dashboard, without entering dashboard edit mode.
+// Slider edits apply live and auto-save (debounced) to the user's HA
+// account — no explicit Save step. Mirrors orbit-app-picker-dialog's shape.
 @customElement("orbit-settings-dialog")
 export class OrbitSettingsDialog extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ type: Boolean }) open = false;
   @property({ attribute: false }) remoteEntity!: string;
-  @property({ type: Number }) trackpadHeight = DEFAULT_TRACKPAD_HEIGHT_PX;
-  @property({ type: Number }) dpadButtonSize = DEFAULT_DPAD_BUTTON_SIZE_PX;
   @property({ type: Number }) sensitivity = DEFAULT_TRACKPAD_SENSITIVITY_PX;
 
-  @state() private _draft: Required<UiSettingsOverride> = {
-    trackpadHeight: DEFAULT_TRACKPAD_HEIGHT_PX,
-    dpadButtonSize: DEFAULT_DPAD_BUTTON_SIZE_PX,
-    sensitivity: DEFAULT_TRACKPAD_SENSITIVITY_PX,
-  };
+  @state() private _draftSensitivity = DEFAULT_TRACKPAD_SENSITIVITY_PX;
   @state() private _saving = false;
   @state() private _error: string | null = null;
 
@@ -41,11 +29,7 @@ export class OrbitSettingsDialog extends LitElement {
     // Only re-seed on the closed->open transition, so an in-flight prop
     // update while the dialog is open doesn't clobber unsaved edits.
     if (changed.has("open") && this.open) {
-      this._draft = {
-        trackpadHeight: this.trackpadHeight,
-        dpadButtonSize: this.dpadButtonSize,
-        sensitivity: this.sensitivity,
-      };
+      this._draftSensitivity = this.sensitivity;
       this._saving = false;
       this._error = null;
     }
@@ -59,7 +43,7 @@ export class OrbitSettingsDialog extends LitElement {
   private _notifyChanged(): void {
     this.dispatchEvent(
       new CustomEvent("settings-changed", {
-        detail: { settings: this._draft },
+        detail: { settings: { sensitivity: this._draftSensitivity } },
         bubbles: true,
         composed: true,
       })
@@ -74,7 +58,9 @@ export class OrbitSettingsDialog extends LitElement {
   private async _commitSave(): Promise<void> {
     this._saving = true;
     this._error = null;
-    const ok = await saveUiSettings(this.hass, this.remoteEntity, this._draft);
+    const ok = await saveUiSettings(this.hass, this.remoteEntity, {
+      sensitivity: this._draftSensitivity,
+    });
     this._saving = false;
     if (!ok) {
       this._error = "Couldn't save settings — check your connection and try again.";
@@ -83,11 +69,7 @@ export class OrbitSettingsDialog extends LitElement {
 
   private _reset = async (): Promise<void> => {
     this._debouncedSave.cancel();
-    this._draft = {
-      trackpadHeight: DEFAULT_TRACKPAD_HEIGHT_PX,
-      dpadButtonSize: DEFAULT_DPAD_BUTTON_SIZE_PX,
-      sensitivity: DEFAULT_TRACKPAD_SENSITIVITY_PX,
-    };
+    this._draftSensitivity = DEFAULT_TRACKPAD_SENSITIVITY_PX;
     this._notifyChanged();
     this._saving = true;
     this._error = null;
@@ -117,14 +99,19 @@ export class OrbitSettingsDialog extends LitElement {
     }
   };
 
-  private _sliderChanged(field: keyof UiSettingsOverride) {
-    return (e: Event): void => {
-      const value = Number((e.target as HTMLInputElement).value);
-      this._draft = { ...this._draft, [field]: value };
-      this._notifyChanged();
-      this._debouncedSave();
-    };
-  }
+  // Hands off to orbit-remote-card.ts, which closes this dialog and jumps
+  // back to the main card view in the wiggle/drag-and-drop edit mode.
+  private _editLayout = (): void => {
+    this._debouncedSave.flush();
+    this.dispatchEvent(new CustomEvent("edit-layout-requested", { bubbles: true, composed: true }));
+    this.dispatchEvent(new CustomEvent("settings-closed", { bubbles: true, composed: true }));
+  };
+
+  private _sensitivityChanged = (e: Event): void => {
+    this._draftSensitivity = Number((e.target as HTMLInputElement).value);
+    this._notifyChanged();
+    this._debouncedSave();
+  };
 
   render() {
     if (!this.open) return html``;
@@ -133,33 +120,11 @@ export class OrbitSettingsDialog extends LitElement {
       <ha-dialog open .heading=${"Settings"} @closed=${this._close}>
         <div class="content">
           <div class="section">
-            <div class="section-title">Trackpad size</div>
-            <div class="slider-row">
-              <input
-                type="range"
-                min="120"
-                max="320"
-                step="10"
-                .value=${String(this._draft.trackpadHeight)}
-                @input=${this._sliderChanged("trackpadHeight")}
-              />
-              <span class="slider-value">${this._draft.trackpadHeight}px</span>
+            <div class="section-title">Layout</div>
+            <div class="button-row">
+              <mwc-button @click=${this._editLayout}>Resize &amp; reorder buttons…</mwc-button>
             </div>
-          </div>
-
-          <div class="section">
-            <div class="section-title">D-pad size</div>
-            <div class="slider-row">
-              <input
-                type="range"
-                min="32"
-                max="64"
-                step="2"
-                .value=${String(this._draft.dpadButtonSize)}
-                @input=${this._sliderChanged("dpadButtonSize")}
-              />
-              <span class="slider-value">${this._draft.dpadButtonSize}px</span>
-            </div>
+            <p class="hint">Drag to reorder, drag a corner to resize. Nothing can overlap.</p>
           </div>
 
           <div class="section">
@@ -170,10 +135,10 @@ export class OrbitSettingsDialog extends LitElement {
                 min="3"
                 max="24"
                 step="1"
-                .value=${String(this._draft.sensitivity)}
-                @input=${this._sliderChanged("sensitivity")}
+                .value=${String(this._draftSensitivity)}
+                @input=${this._sensitivityChanged}
               />
-              <span class="slider-value">${this._draft.sensitivity}px</span>
+              <span class="slider-value">${this._draftSensitivity}px</span>
             </div>
             <p class="hint">Lower = faster/more sensitive. Higher = slower/more precise.</p>
           </div>

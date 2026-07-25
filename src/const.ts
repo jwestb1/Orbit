@@ -64,8 +64,13 @@ export const DEFAULT_APPS: AppShortcut[] = [
 export const DEFAULT_TRACKPAD_SENSITIVITY_PX = 10;
 export const DEFAULT_MIN_SEND_INTERVAL_MS = 40;
 export const DEFAULT_LONG_PRESS_HOLD_SECS = 0.5;
-export const DEFAULT_TRACKPAD_HEIGHT_PX = 180;
-export const DEFAULT_DPAD_BUTTON_SIZE_PX = 44;
+
+// Pixel pitch of one row in the card's button-layout grid (see
+// lib/button-layout.ts) — columns are elastic (fr units, responsive to card
+// width) but rows are this fixed height, so a resize/drag in edit mode has
+// a stable, predictable cell size to snap to.
+export const GRID_ROW_HEIGHT_PX = 44;
+export const GRID_GAP_PX = 8;
 
 // Grace period before showing the unavailable state, so the reported
 // ~15s disconnect/reconnect blips (spec §3.4) don't flicker the UI.

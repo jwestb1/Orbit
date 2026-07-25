@@ -1,27 +1,21 @@
-import { LitElement, html, css, type PropertyValues } from "lit";
+import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import type { HomeAssistant } from "custom-card-helpers";
 import { HaService } from "../lib/ha-service";
-import { DEFAULT_DPAD_BUTTON_SIZE_PX, DEFAULT_LONG_PRESS_HOLD_SECS, KEYCODE } from "../const";
+import { DEFAULT_LONG_PRESS_HOLD_SECS, KEYCODE } from "../const";
 import { triggerHaptic } from "../lib/haptics";
 import { LongPressController } from "../lib/long-press";
 
+// Sized entirely by its host's grid cell (see orbit-remote-card.ts) — the
+// D-pad is a single draggable/resizable layout item, and its 5 sub-buttons
+// always stay laid out in this internal 3x3 grid, stretching to fill
+// whatever space the outer cell allocates.
 @customElement("orbit-dpad-cluster")
 export class OrbitDpadCluster extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ attribute: false }) entity!: string;
   @property({ type: Boolean }) haptics?: boolean;
   @property({ type: Boolean, reflect: true }) disabled = false;
-  @property({ type: Number }) buttonSizePx?: number;
-
-  protected updated(changed: PropertyValues): void {
-    if (changed.has("buttonSizePx")) {
-      this.style.setProperty(
-        "--orbit-dpad-button-size",
-        `${this.buttonSizePx ?? DEFAULT_DPAD_BUTTON_SIZE_PX}px`
-      );
-    }
-  }
 
   private _centerLongPress = new LongPressController(() =>
     this._send(KEYCODE.DPAD_CENTER, DEFAULT_LONG_PRESS_HOLD_SECS, "medium")
@@ -85,16 +79,22 @@ export class OrbitDpadCluster extends LitElement {
   }
 
   static styles = css`
+    :host {
+      display: block;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+    }
     :host([disabled]) .dpad {
       opacity: 0.4;
       pointer-events: none;
     }
     .dpad {
       display: grid;
-      grid-template-columns: repeat(3, var(--orbit-dpad-button-size, 44px));
-      grid-template-rows: repeat(3, var(--orbit-dpad-button-size, 44px));
-      justify-content: center;
-      align-content: center;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      width: 100%;
+      height: 100%;
       gap: 4px;
     }
     .up {
@@ -118,7 +118,10 @@ export class OrbitDpadCluster extends LitElement {
       grid-row: 3;
     }
     ha-icon-button {
-      --mdc-icon-button-size: var(--orbit-dpad-button-size, 44px);
+      width: 100%;
+      height: 100%;
+      --mdc-icon-button-size: 100%;
+      --mdc-icon-size: min(50%, 32px);
       transition: transform 80ms ease-out;
     }
     ha-icon-button:active {
