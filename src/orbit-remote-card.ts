@@ -3,8 +3,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import type { HomeAssistant } from "custom-card-helpers";
 import "./components/trackpad";
 import "./components/dpad-cluster";
-import "./components/button-row";
-import "./components/media-row";
+import "./components/remote-button";
 import "./components/volume-slider";
 import "./components/text-input-sheet";
 import "./components/app-launcher-dialog";
@@ -18,15 +17,67 @@ import {
   CARD_TYPE,
   LEGACY_CARD_TYPE,
   DEFAULT_APPS,
-  DEFAULT_DPAD_BUTTON_SIZE_PX,
-  DEFAULT_TRACKPAD_HEIGHT_PX,
+  DEFAULT_LONG_PRESS_HOLD_SECS,
   DEFAULT_TRACKPAD_SENSITIVITY_PX,
+  GRID_GAP_PX,
+  GRID_ROW_HEIGHT_PX,
+  KEYCODE,
   UNAVAILABLE_GRACE_MS,
 } from "./const";
 import { loadOverride } from "./lib/app-shortcuts-storage";
-import { loadUiSettings } from "./lib/ui-settings-storage";
+import { loadUiSettings, saveUiSettings } from "./lib/ui-settings-storage";
 import { resolveActiveBox, resolveBoxes, type ResolvedBox } from "./lib/box-resolver";
+import {
+  DEFAULT_LAYOUT,
+  GRID_COLUMNS,
+  moveItem,
+  resizeItem,
+  type LayoutItem,
+  type LayoutItemId,
+} from "./lib/button-layout";
+import { DragReorderController } from "./lib/drag-reorder-controller";
 import type { AppShortcut, OrbitRemoteCardConfig, UiSettingsOverride } from "./types";
+import type { KeyCode } from "./const";
+
+// Static per-button visuals/behavior for every LayoutItemId that isn't the
+// trackpad, D-pad, or volume slider (those three render their own
+// dedicated components — see _renderItemContent below).
+interface ButtonDef {
+  icon: string;
+  label: string;
+  keycode?: KeyCode;
+  holdSecs?: number;
+  haptic?: "light" | "medium";
+  longPressHaptic?: "light" | "medium";
+  danger?: boolean;
+  eventName?: string;
+}
+
+const BUTTON_DEFS: Partial<Record<LayoutItemId, ButtonDef>> = {
+  back: {
+    icon: "mdi:arrow-left",
+    label: "Back (hold for long-press)",
+    keycode: KEYCODE.BACK,
+    holdSecs: DEFAULT_LONG_PRESS_HOLD_SECS,
+    longPressHaptic: "medium",
+  },
+  home: {
+    icon: "mdi:home",
+    label: "Home (hold for long-press)",
+    keycode: KEYCODE.HOME,
+    holdSecs: DEFAULT_LONG_PRESS_HOLD_SECS,
+    longPressHaptic: "medium",
+  },
+  power: { icon: "mdi:power", label: "Power", keycode: KEYCODE.POWER, haptic: "medium", danger: true },
+  volume_down: { icon: "mdi:volume-minus", label: "Volume down", keycode: KEYCODE.VOLUME_DOWN },
+  mute: { icon: "mdi:volume-mute", label: "Mute", keycode: KEYCODE.VOLUME_MUTE },
+  volume_up: { icon: "mdi:volume-plus", label: "Volume up", keycode: KEYCODE.VOLUME_UP },
+  keyboard: { icon: "mdi:keyboard-outline", label: "Text input", eventName: "open-text-input" },
+  apps: { icon: "mdi:apps", label: "Apps", eventName: "open-app-launcher" },
+  rewind: { icon: "mdi:rewind", label: "Rewind", keycode: KEYCODE.MEDIA_REWIND },
+  play_pause: { icon: "mdi:play-pause", label: "Play/Pause", keycode: KEYCODE.MEDIA_PLAY_PAUSE },
+  fast_forward: { icon: "mdi:fast-forward", label: "Fast forward", keycode: KEYCODE.MEDIA_FAST_FORWARD },
+};
 
 @customElement(CARD_TYPE)
 export class OrbitRemoteCard extends LitElement {
@@ -40,10 +91,17 @@ export class OrbitRemoteCard extends LitElement {
   @state() private _appsOverride: AppShortcut[] | null = null;
   @state() private _settingsOpen = false;
   @state() private _uiSettingsOverride: UiSettingsOverride | null = null;
+  @state() private _layoutEditMode = false;
+  @state() private _draftLayout: LayoutItem[] | null = null;
 
   private _unavailableTimer?: number;
   private _overridesLoadedForEntity?: string;
   private _overridesLoadToken = 0;
+
+  private _dragControllers = new Map<LayoutItemId, DragReorderController>();
+  private _resizeControllers = new Map<LayoutItemId, DragReorderController>();
+  private _dragOrigin = new Map<LayoutItemId, { x: number; y: number }>();
+  private _resizeOrigin = new Map<LayoutItemId, { w: number; h: number }>();
 
   // Deliberately never throws for an incomplete box (e.g. no remote_entity
   // picked yet): Lovelace's editor calls setConfig() live on every keystroke
@@ -76,20 +134,24 @@ export class OrbitRemoteCard extends LitElement {
     this._activeBoxId = e.detail.id;
   };
 
-  private get _trackpadHeight(): number {
-    return this._uiSettingsOverride?.trackpadHeight ?? DEFAULT_TRACKPAD_HEIGHT_PX;
-  }
-
-  private get _dpadButtonSize(): number {
-    return this._uiSettingsOverride?.dpadButtonSize ?? DEFAULT_DPAD_BUTTON_SIZE_PX;
-  }
-
   private get _sensitivity(): number {
     return (
       this._uiSettingsOverride?.sensitivity ??
       this._config.trackpad?.sensitivity ??
       DEFAULT_TRACKPAD_SENSITIVITY_PX
     );
+  }
+
+  // The saved layout, or the built-in default if the user has never
+  // customized one.
+  private get _layout(): LayoutItem[] {
+    return this._uiSettingsOverride?.buttonLayout ?? DEFAULT_LAYOUT;
+  }
+
+  // The layout actually being rendered: the in-progress edit while edit
+  // mode is active, otherwise the saved one.
+  private get _effectiveLayout(): LayoutItem[] {
+    return this._draftLayout ?? this._layout;
   }
 
   static getStubConfig(): Partial<OrbitRemoteCardConfig> {
@@ -120,7 +182,9 @@ export class OrbitRemoteCard extends LitElement {
       changed.has("_appPickerOpen") ||
       changed.has("_appsOverride") ||
       changed.has("_settingsOpen") ||
-      changed.has("_uiSettingsOverride")
+      changed.has("_uiSettingsOverride") ||
+      changed.has("_layoutEditMode") ||
+      changed.has("_draftLayout")
     )
       return true;
 
@@ -220,12 +284,178 @@ export class OrbitRemoteCard extends LitElement {
   };
 
   private _settingsChanged = (e: CustomEvent<{ settings: UiSettingsOverride }>): void => {
-    this._uiSettingsOverride = e.detail.settings;
+    this._uiSettingsOverride = { ...this._uiSettingsOverride, ...e.detail.settings };
   };
 
   private _appsReset = (): void => {
     this._appsOverride = null;
   };
+
+  // Hands off from the settings dialog: close it and jump into the
+  // wiggle/drag-and-drop layout editor on the main card view.
+  private _onEditLayoutRequested = (): void => {
+    this._settingsOpen = false;
+    this._draftLayout = this._layout;
+    this._layoutEditMode = true;
+  };
+
+  private _onLayoutDone = (): void => {
+    this._layoutEditMode = false;
+    const draft = this._draftLayout;
+    this._draftLayout = null;
+    const box = this._activeBox;
+    if (!draft || !box) return;
+    const nextOverride: UiSettingsOverride = { ...this._uiSettingsOverride, buttonLayout: draft };
+    this._uiSettingsOverride = nextOverride;
+    void saveUiSettings(this.hass, box.remote_entity, nextOverride);
+  };
+
+  // Measured in pixels so pointer-drag deltas (also pixels) can be
+  // converted into whole grid-cell deltas. Columns are elastic (fr units,
+  // responsive to card width) so column width is measured live; rows are a
+  // fixed pitch (see const.ts), so row height is a constant.
+  private get _cellSize(): { width: number; height: number } {
+    const grid = this.renderRoot?.querySelector(".control-grid") as HTMLElement | null;
+    const width = grid ? grid.clientWidth / GRID_COLUMNS : 0;
+    return { width, height: GRID_ROW_HEIGHT_PX + GRID_GAP_PX };
+  }
+
+  private _getDragController(id: LayoutItemId): DragReorderController {
+    let controller = this._dragControllers.get(id);
+    if (!controller) {
+      controller = new DragReorderController(
+        (dx, dy) => this._onDragDelta(id, dx, dy),
+        () => this._cellSize
+      );
+      this._dragControllers.set(id, controller);
+    }
+    return controller;
+  }
+
+  private _getResizeController(id: LayoutItemId): DragReorderController {
+    let controller = this._resizeControllers.get(id);
+    if (!controller) {
+      controller = new DragReorderController(
+        (dx, dy) => this._onResizeDelta(id, dx, dy),
+        () => this._cellSize
+      );
+      this._resizeControllers.set(id, controller);
+    }
+    return controller;
+  }
+
+  private _onItemPointerDown = (id: LayoutItemId, e: PointerEvent): void => {
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    const item = this._effectiveLayout.find((i) => i.id === id);
+    if (item) this._dragOrigin.set(id, { x: item.x, y: item.y });
+    this._getDragController(id).onPointerDown(e);
+  };
+
+  private _onDragDelta(id: LayoutItemId, dx: number, dy: number): void {
+    const origin = this._dragOrigin.get(id);
+    if (!origin) return;
+    const result = moveItem(this._effectiveLayout, id, origin.x + dx, origin.y + dy);
+    if (result) this._draftLayout = result;
+  }
+
+  // stopPropagation so a drag starting on the resize handle doesn't also
+  // register as a move-drag on the parent item.
+  private _onResizeHandlePointerDown = (id: LayoutItemId, e: PointerEvent): void => {
+    e.stopPropagation();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    const item = this._effectiveLayout.find((i) => i.id === id);
+    if (item) this._resizeOrigin.set(id, { w: item.w, h: item.h });
+    this._getResizeController(id).onPointerDown(e);
+  };
+
+  private _onResizeDelta(id: LayoutItemId, dx: number, dy: number): void {
+    const origin = this._resizeOrigin.get(id);
+    if (!origin) return;
+    const result = resizeItem(this._effectiveLayout, id, origin.w + dx, origin.h + dy);
+    if (result) this._draftLayout = result;
+  }
+
+  private _renderItemContent(id: LayoutItemId, unavailable: boolean, box: ResolvedBox) {
+    if (id === "trackpad") {
+      return html`
+        <orbit-trackpad
+          .hass=${this.hass}
+          .entity=${box.remote_entity}
+          .config=${{ ...this._config.trackpad, sensitivity: this._sensitivity }}
+          .haptics=${this._config.haptics}
+          ?disabled=${unavailable}
+        ></orbit-trackpad>
+      `;
+    }
+    if (id === "dpad") {
+      return html`
+        <orbit-dpad-cluster
+          .hass=${this.hass}
+          .entity=${box.remote_entity}
+          .haptics=${this._config.haptics}
+          ?disabled=${unavailable}
+        ></orbit-dpad-cluster>
+      `;
+    }
+    if (id === "volume_slider") {
+      return box.media_player_entity
+        ? html`<orbit-volume-slider
+            .hass=${this.hass}
+            .entity=${box.media_player_entity}
+            ?disabled=${unavailable}
+          ></orbit-volume-slider>`
+        : "";
+    }
+    const def = BUTTON_DEFS[id];
+    if (!def) return "";
+    return html`
+      <orbit-remote-button
+        .hass=${this.hass}
+        .entity=${box.remote_entity}
+        .haptics=${this._config.haptics}
+        ?disabled=${unavailable}
+        .icon=${def.icon}
+        .label=${def.label}
+        .keycode=${def.keycode}
+        .holdSecs=${def.holdSecs}
+        .haptic=${def.haptic ?? "light"}
+        .longPressHaptic=${def.longPressHaptic ?? "medium"}
+        ?danger=${!!def.danger}
+        .eventName=${def.eventName}
+      ></orbit-remote-button>
+    `;
+  }
+
+  private _renderItem(item: LayoutItem, unavailable: boolean, box: ResolvedBox) {
+    const style = `grid-column: ${item.x + 1} / span ${item.w}; grid-row: ${item.y + 1} / span ${item.h};`;
+    const content = this._renderItemContent(item.id, unavailable, box);
+
+    if (!this._layoutEditMode) {
+      return html`<div class="grid-item" style=${style}>${content}</div>`;
+    }
+
+    return html`
+      <div
+        class="grid-item wiggle"
+        style=${style}
+        @pointerdown=${(e: PointerEvent) => this._onItemPointerDown(item.id, e)}
+        @pointermove=${(e: PointerEvent) => this._getDragController(item.id).onPointerMove(e)}
+        @pointerup=${() => this._getDragController(item.id).onPointerUp()}
+        @pointercancel=${() => this._getDragController(item.id).onPointerUp()}
+      >
+        <div class="grid-item-content">${content}</div>
+        <div
+          class="resize-handle"
+          @pointerdown=${(e: PointerEvent) => this._onResizeHandlePointerDown(item.id, e)}
+          @pointermove=${(e: PointerEvent) => this._getResizeController(item.id).onPointerMove(e)}
+          @pointerup=${() => this._getResizeController(item.id).onPointerUp()}
+          @pointercancel=${() => this._getResizeController(item.id).onPointerUp()}
+        >
+          <ha-icon icon="mdi:resize-bottom-right"></ha-icon>
+        </div>
+      </div>
+    `;
+  }
 
   render() {
     const box = this._activeBox;
@@ -237,60 +467,41 @@ export class OrbitRemoteCard extends LitElement {
       `;
     }
     const unavailable = this._showUnavailable;
+    const items = this._effectiveLayout.filter(
+      (item) => item.id !== "volume_slider" || !!box.media_player_entity
+    );
 
     return html`
       <ha-card>
-        <div class="card-header-row">
-          <orbit-box-switcher
-            .boxes=${this._boxes}
-            .activeId=${box.id}
-            @box-selected=${this._onBoxSelected}
-          ></orbit-box-switcher>
-          <ha-icon-button .label=${"Settings"} @click=${this._openSettings}>
-            <ha-icon icon="mdi:cog"></ha-icon>
-          </ha-icon-button>
-        </div>
-        ${unavailable
+        ${this._layoutEditMode
+          ? html`
+              <div class="card-header-row">
+                <span class="edit-mode-hint">Drag to move, drag a corner to resize</span>
+                <mwc-button @click=${this._onLayoutDone}>Done</mwc-button>
+              </div>
+            `
+          : html`
+              <div class="card-header-row">
+                <orbit-box-switcher
+                  .boxes=${this._boxes}
+                  .activeId=${box.id}
+                  @box-selected=${this._onBoxSelected}
+                ></orbit-box-switcher>
+                <ha-icon-button .label=${"Settings"} @click=${this._openSettings}>
+                  <ha-icon icon="mdi:cog"></ha-icon>
+                </ha-icon-button>
+              </div>
+            `}
+        ${unavailable && !this._layoutEditMode
           ? html`<div class="unavailable-banner">Device is unavailable</div>`
           : ""}
-        <div class="primary-controls">
-          <orbit-trackpad
-            .hass=${this.hass}
-            .entity=${box.remote_entity}
-            .config=${{ ...this._config.trackpad, sensitivity: this._sensitivity }}
-            .haptics=${this._config.haptics}
-            .heightPx=${this._trackpadHeight}
-            ?disabled=${unavailable}
-          ></orbit-trackpad>
-          <orbit-dpad-cluster
-            .hass=${this.hass}
-            .entity=${box.remote_entity}
-            .haptics=${this._config.haptics}
-            .buttonSizePx=${this._dpadButtonSize}
-            ?disabled=${unavailable}
-          ></orbit-dpad-cluster>
-        </div>
-        <orbit-button-row
-          .hass=${this.hass}
-          .entity=${box.remote_entity}
-          .haptics=${this._config.haptics}
-          ?disabled=${unavailable}
+        <div
+          class="control-grid"
           @open-text-input=${this._openTextInput}
           @open-app-launcher=${this._openAppLauncher}
-        ></orbit-button-row>
-        <orbit-media-row
-          .hass=${this.hass}
-          .entity=${box.remote_entity}
-          .haptics=${this._config.haptics}
-          ?disabled=${unavailable}
-        ></orbit-media-row>
-        ${box.media_player_entity
-          ? html`<orbit-volume-slider
-              .hass=${this.hass}
-              .entity=${box.media_player_entity}
-              ?disabled=${unavailable}
-            ></orbit-volume-slider>`
-          : ""}
+        >
+          ${items.map((item) => this._renderItem(item, unavailable, box))}
+        </div>
         <orbit-text-input-sheet
           .hass=${this.hass}
           .entity=${box.remote_entity}
@@ -320,13 +531,12 @@ export class OrbitRemoteCard extends LitElement {
           .hass=${this.hass}
           .open=${this._settingsOpen}
           .remoteEntity=${box.remote_entity}
-          .trackpadHeight=${this._trackpadHeight}
-          .dpadButtonSize=${this._dpadButtonSize}
           .sensitivity=${this._sensitivity}
           @settings-changed=${this._settingsChanged}
           @settings-closed=${this._closeSettings}
           @open-app-picker=${this._openAppPicker}
           @apps-reset=${this._appsReset}
+          @edit-layout-requested=${this._onEditLayoutRequested}
         ></orbit-settings-dialog>
       </ha-card>
     `;
@@ -359,6 +569,12 @@ export class OrbitRemoteCard extends LitElement {
       --mdc-icon-button-size: 36px;
       color: var(--secondary-text-color);
     }
+    .edit-mode-hint {
+      font-size: 0.85em;
+      color: var(--secondary-text-color);
+      flex: 1 1 auto;
+      min-width: 0;
+    }
     .unavailable-banner {
       font-size: 0.85em;
       color: var(--error-color, #db4437);
@@ -370,22 +586,58 @@ export class OrbitRemoteCard extends LitElement {
       text-align: center;
       padding: 8px 0;
     }
-    .primary-controls {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
+    .control-grid {
+      display: grid;
+      grid-template-columns: repeat(${GRID_COLUMNS}, 1fr);
+      grid-auto-rows: ${GRID_ROW_HEIGHT_PX}px;
+      gap: ${GRID_GAP_PX}px;
     }
-    @container orbit-remote-card (min-width: 420px) {
-      .primary-controls {
-        flex-direction: row;
-        align-items: center;
+    .grid-item {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+    }
+    .grid-item-content {
+      width: 100%;
+      height: 100%;
+    }
+    .grid-item.wiggle {
+      touch-action: none;
+      animation: orbit-wiggle 0.22s ease-in-out infinite;
+    }
+    .grid-item.wiggle:nth-child(even) {
+      animation-delay: -0.11s;
+    }
+    .grid-item.wiggle .grid-item-content {
+      pointer-events: none;
+    }
+    @keyframes orbit-wiggle {
+      0%,
+      100% {
+        transform: rotate(-1deg);
       }
-      .primary-controls orbit-trackpad {
-        flex: 1 1 55%;
+      50% {
+        transform: rotate(1deg);
       }
-      .primary-controls orbit-dpad-cluster {
-        flex: 0 0 auto;
-      }
+    }
+    .resize-handle {
+      position: absolute;
+      right: -6px;
+      bottom: -6px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--primary-color, #03a9f4);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: none;
+      cursor: nwse-resize;
+      z-index: 1;
+    }
+    .resize-handle ha-icon {
+      --mdc-icon-size: 14px;
     }
   `;
 }

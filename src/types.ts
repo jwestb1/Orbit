@@ -1,4 +1,5 @@
 import type { LovelaceCardConfig } from "custom-card-helpers";
+import type { LayoutItem } from "./lib/button-layout";
 
 export interface AppShortcut {
   name: string;
@@ -45,7 +46,6 @@ export interface OrbitRemoteCardConfig extends LovelaceCardConfig {
 export type RemoteDirection = "SHORT" | "START_LONG" | "END_LONG";
 
 export interface UiSettingsOverride {
-  trackpadHeight?: number;
-  dpadButtonSize?: number;
   sensitivity?: number;
+  buttonLayout?: LayoutItem[];
 }

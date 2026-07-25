@@ -58,7 +58,7 @@ describe("ui-settings-storage", () => {
   it("round-trips a full settings override", async () => {
     vi.stubGlobal("localStorage", fakeLocalStorage());
     const hass = fakeHass();
-    const settings = { trackpadHeight: 220, dpadButtonSize: 52, sensitivity: 14 };
+    const settings = { sensitivity: 14 };
     await saveUiSettings(hass, "remote.shield", settings);
     expect(await loadUiSettings(hass, "remote.shield")).toEqual(settings);
   });
@@ -67,20 +67,57 @@ describe("ui-settings-storage", () => {
     vi.stubGlobal("localStorage", fakeLocalStorage());
     const hass = fakeHass();
     await saveUiSettings(hass, "remote.shield", {
-      trackpadHeight: 200,
-      dpadButtonSize: "big",
-      sensitivity: null,
+      sensitivity: 14,
+      buttonLayout: "not-an-array",
     } as unknown as UiSettingsOverride);
-    expect(await loadUiSettings(hass, "remote.shield")).toEqual({ trackpadHeight: 200 });
+    expect(await loadUiSettings(hass, "remote.shield")).toEqual({ sensitivity: 14 });
+  });
+
+  it("round-trips a buttonLayout array", async () => {
+    vi.stubGlobal("localStorage", fakeLocalStorage());
+    const hass = fakeHass();
+    const settings = {
+      buttonLayout: [
+        { id: "trackpad", x: 0, y: 0, w: 4, h: 3 },
+        { id: "dpad", x: 4, y: 0, w: 2, h: 3 },
+      ],
+    };
+    await saveUiSettings(hass, "remote.shield", settings as UiSettingsOverride);
+    expect(await loadUiSettings(hass, "remote.shield")).toEqual(settings);
+  });
+
+  it("drops individual malformed buttonLayout entries but keeps the rest", async () => {
+    vi.stubGlobal("localStorage", fakeLocalStorage());
+    const hass = fakeHass();
+    await saveUiSettings(hass, "remote.shield", {
+      buttonLayout: [
+        { id: "trackpad", x: 0, y: 0, w: 4, h: 3 },
+        { id: "not_a_real_button", x: 0, y: 0, w: 1, h: 1 },
+        { id: "dpad", x: 4, y: "oops", w: 2, h: 3 },
+      ],
+    } as unknown as UiSettingsOverride);
+    expect(await loadUiSettings(hass, "remote.shield")).toEqual({
+      buttonLayout: [{ id: "trackpad", x: 0, y: 0, w: 4, h: 3 }],
+    });
+  });
+
+  it("drops an empty or entirely-invalid buttonLayout array", async () => {
+    vi.stubGlobal("localStorage", fakeLocalStorage());
+    const hass = fakeHass();
+    await saveUiSettings(hass, "remote.shield", {
+      sensitivity: 14,
+      buttonLayout: [],
+    } as unknown as UiSettingsOverride);
+    expect(await loadUiSettings(hass, "remote.shield")).toEqual({ sensitivity: 14 });
   });
 
   it("keeps distinct remote entities isolated under different keys", async () => {
     vi.stubGlobal("localStorage", fakeLocalStorage());
     const hass = fakeHass();
-    await saveUiSettings(hass, "remote.shield_a", { trackpadHeight: 200 });
-    await saveUiSettings(hass, "remote.shield_b", { trackpadHeight: 300 });
-    expect(await loadUiSettings(hass, "remote.shield_a")).toEqual({ trackpadHeight: 200 });
-    expect(await loadUiSettings(hass, "remote.shield_b")).toEqual({ trackpadHeight: 300 });
+    await saveUiSettings(hass, "remote.shield_a", { sensitivity: 10 });
+    await saveUiSettings(hass, "remote.shield_b", { sensitivity: 20 });
+    expect(await loadUiSettings(hass, "remote.shield_a")).toEqual({ sensitivity: 10 });
+    expect(await loadUiSettings(hass, "remote.shield_b")).toEqual({ sensitivity: 20 });
   });
 
   it("removes a stored override on clearUiSettings", async () => {
@@ -101,21 +138,21 @@ describe("ui-settings-storage", () => {
 
   it("migrates a legacy localStorage value up to the server when the server has none", async () => {
     const storage = fakeLocalStorage();
-    storage.setItem(KEY, JSON.stringify({ trackpadHeight: 250 }));
+    storage.setItem(KEY, JSON.stringify({ sensitivity: 25 }));
     vi.stubGlobal("localStorage", storage);
     const hass = fakeHass();
 
-    expect(await loadUiSettings(hass, "remote.shield")).toEqual({ trackpadHeight: 250 });
+    expect(await loadUiSettings(hass, "remote.shield")).toEqual({ sensitivity: 25 });
     expect(hass.callWS).toHaveBeenCalledWith({
       type: "frontend/set_user_data",
       key: KEY,
-      value: { data: { trackpadHeight: 250 } },
+      value: { data: { sensitivity: 25 } },
     });
   });
 
   it("does not resurrect legacy localStorage data after an explicit server-side reset", async () => {
     const storage = fakeLocalStorage();
-    storage.setItem(KEY, JSON.stringify({ trackpadHeight: 250 }));
+    storage.setItem(KEY, JSON.stringify({ sensitivity: 25 }));
     vi.stubGlobal("localStorage", storage);
     const hass = fakeHass();
 
