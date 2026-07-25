@@ -652,12 +652,18 @@ declare global {
   }
 }
 
-// Permanent alias — registers the same class under the pre-rebrand tag name
-// so existing dashboards' `type: custom:shield-remote-card` YAML keeps
-// working indefinitely. Not listed in window.customCards (below), so the
-// "Add Card" picker only ever offers the current name, not a duplicate.
+// Permanent alias — registers the pre-rebrand tag name so existing
+// dashboards' `type: custom:shield-remote-card` YAML keeps working
+// indefinitely. Not listed in window.customCards (below), so the "Add Card"
+// picker only ever offers the current name, not a duplicate.
+//
+// A bare subclass (rather than defining OrbitRemoteCard itself a second
+// time) is required here: CustomElementRegistry.define() throws
+// NotSupportedError if the same constructor is registered under two tag
+// names, so reusing OrbitRemoteCard directly threw on every page load.
+class OrbitRemoteCardLegacy extends OrbitRemoteCard {}
 if (!customElements.get(LEGACY_CARD_TYPE)) {
-  customElements.define(LEGACY_CARD_TYPE, OrbitRemoteCard);
+  customElements.define(LEGACY_CARD_TYPE, OrbitRemoteCardLegacy);
 }
 
 window.customCards = window.customCards || [];
