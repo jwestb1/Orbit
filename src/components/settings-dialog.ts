@@ -4,6 +4,7 @@ import type { HomeAssistant } from "custom-card-helpers";
 import { saveUiSettings, clearUiSettings } from "../lib/ui-settings-storage";
 import { clearOverride } from "../lib/app-shortcuts-storage";
 import { debounce } from "../lib/debounce";
+import { dialogSectionStyles } from "../lib/shared-styles";
 import { AUTOSAVE_DEBOUNCE_MS, DEFAULT_TRACKPAD_SENSITIVITY_PX } from "../const";
 
 // Lets the user tune scroll speed and jump into the card's layout edit mode
@@ -151,8 +152,10 @@ export class OrbitSettingsDialog extends LitElement {
             </div>
           </div>
 
-          <p class="hint">${this._saving ? "Saving…" : "Synced to your Home Assistant account."}</p>
-          ${this._error ? html`<p class="hint error">${this._error}</p>` : ""}
+          <div class="status">
+            <p class="hint">${this._saving ? "Saving…" : "Synced to your Home Assistant account."}</p>
+            ${this._error ? html`<p class="hint error">${this._error}</p>` : ""}
+          </div>
         </div>
         <mwc-button slot="secondaryAction" @click=${this._reset}>Reset display settings</mwc-button>
         <mwc-button slot="primaryAction" @click=${this._close}>Close</mwc-button>
@@ -160,48 +163,45 @@ export class OrbitSettingsDialog extends LitElement {
     `;
   }
 
-  static styles = css`
-    .content {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      min-width: 280px;
-    }
-    .section {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .section-title {
-      font-weight: 500;
-      color: var(--secondary-text-color);
-    }
-    .slider-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .slider-row input[type="range"] {
-      flex: 1;
-    }
-    .slider-value {
-      min-width: 3.5em;
-      text-align: right;
-      color: var(--secondary-text-color);
-    }
-    .button-row {
-      display: flex;
-      gap: 8px;
-    }
-    .hint {
-      margin: 0;
-      font-size: 0.8em;
-      color: var(--secondary-text-color);
-    }
-    .hint.error {
-      color: var(--error-color, #db4437);
-    }
-  `;
+  static styles = [
+    dialogSectionStyles,
+    css`
+      .content {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        min-width: 280px;
+      }
+      .slider-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .slider-row input[type="range"] {
+        flex: 1;
+      }
+      .slider-value {
+        min-width: 3.5em;
+        text-align: right;
+        color: var(--secondary-text-color);
+      }
+      .button-row {
+        display: flex;
+        gap: 8px;
+      }
+      .button-row mwc-button {
+        background: var(--secondary-background-color, rgba(0, 0, 0, 0.06));
+        border-radius: 8px;
+      }
+      .status {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding-top: 12px;
+        border-top: 1px solid var(--divider-color);
+      }
+    `,
+  ];
 }
 
 declare global {
