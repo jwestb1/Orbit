@@ -89,7 +89,8 @@ export class OrbitRemoteButton extends LitElement {
       width: 100%;
       height: 100%;
       --mdc-icon-button-size: 100%;
-      --mdc-icon-size: min(60%, 32px);
+      --mdc-icon-size: 60%;
+      --mdc-ripple-color: transparent;
       transition: transform 80ms ease-out;
     }
     ha-icon-button:active {

@@ -121,7 +121,8 @@ export class OrbitDpadCluster extends LitElement {
       width: 100%;
       height: 100%;
       --mdc-icon-button-size: 100%;
-      --mdc-icon-size: min(50%, 32px);
+      --mdc-icon-size: 50%;
+      --mdc-ripple-color: transparent;
       transition: transform 80ms ease-out;
     }
     ha-icon-button:active {
