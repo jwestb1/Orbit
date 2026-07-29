@@ -22,6 +22,7 @@ import {
   GRID_GAP_PX,
   GRID_ROW_HEIGHT_PX,
   KEYCODE,
+  MEDIA_PLAYER_FEATURE,
   UNAVAILABLE_GRACE_MS,
 } from "./const";
 import { loadOverride } from "./lib/app-shortcuts-storage";
@@ -467,8 +468,15 @@ export class OrbitRemoteCard extends LitElement {
       `;
     }
     const unavailable = this._showUnavailable;
+    const mediaPlayerState = box.media_player_entity
+      ? this.hass.states[box.media_player_entity]
+      : undefined;
+    const supportsVolumeSet =
+      ((mediaPlayerState?.attributes.supported_features ?? 0) &
+        MEDIA_PLAYER_FEATURE.VOLUME_SET) !==
+      0;
     const items = this._effectiveLayout.filter(
-      (item) => item.id !== "volume_slider" || !!box.media_player_entity
+      (item) => item.id !== "volume_slider" || supportsVolumeSet
     );
 
     return html`
