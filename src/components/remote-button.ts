@@ -56,8 +56,11 @@ export class OrbitRemoteButton extends LitElement {
 
   render() {
     return html`
-      <ha-icon-button
-        .label=${this.label}
+      <button
+        type="button"
+        aria-label=${this.label}
+        title=${this.label}
+        ?disabled=${this.disabled}
         @pointerdown=${this._longPress.onPointerDown}
         @pointermove=${this._longPress.onPointerMove}
         @pointerup=${this._longPress.onPointerUp}
@@ -65,10 +68,14 @@ export class OrbitRemoteButton extends LitElement {
         @click=${this._onClick}
       >
         <ha-icon icon=${this.icon}></ha-icon>
-      </ha-icon-button>
+      </button>
     `;
   }
 
+  // A plain native <button> instead of ha-icon-button: HA's own icon-button
+  // paints a fixed-opacity currentColor circle behind its content on hover
+  // with no CSS hook to disable it (see ha-icon-button.ts's `::after`
+  // rule), so it can't be suppressed from here — only replaced.
   static styles = css`
     :host {
       display: flex;
@@ -85,16 +92,25 @@ export class OrbitRemoteButton extends LitElement {
     :host([danger]) {
       color: var(--error-color, #db4437);
     }
-    ha-icon-button {
+    button {
+      all: unset;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       width: 100%;
       height: 100%;
-      --mdc-icon-button-size: 100%;
-      --mdc-icon-size: 60%;
-      --mdc-ripple-color: transparent;
+      box-sizing: border-box;
+      color: inherit;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
       transition: transform 80ms ease-out;
     }
-    ha-icon-button:active {
+    button:active {
       transform: scale(0.9);
+    }
+    ha-icon {
+      --mdc-icon-size: 60%;
+      pointer-events: none;
     }
   `;
 }
