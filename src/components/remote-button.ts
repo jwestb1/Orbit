@@ -109,7 +109,18 @@ export class OrbitRemoteButton extends LitElement {
       transform: scale(0.9);
     }
     ha-icon {
-      --mdc-icon-size: 60%;
+      /* --mdc-icon-size alone can't reach the SVG inside: ha-icon's own
+      box has no explicit size, so a percentage two shadow-DOM levels
+      down (into ha-svg-icon) resolves against an indefinite container
+      and the icon stops scaling/centering in sync with the button.
+      Sizing ha-icon itself directly first makes that box definite, so
+      the nested --mdc-icon-size: 100% then has something real to fill. */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 60%;
+      height: 60%;
+      --mdc-icon-size: 100%;
       pointer-events: none;
     }
   `;
