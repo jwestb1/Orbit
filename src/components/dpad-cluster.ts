@@ -35,23 +35,29 @@ export class OrbitDpadCluster extends LitElement {
   render() {
     return html`
       <div class="dpad">
-        <ha-icon-button
+        <button
+          type="button"
           class="up"
-          .label=${"Up"}
+          aria-label="Up"
+          title="Up"
           @click=${() => this._send(KEYCODE.DPAD_UP)}
         >
           <ha-icon icon="mdi:chevron-up"></ha-icon>
-        </ha-icon-button>
-        <ha-icon-button
+        </button>
+        <button
+          type="button"
           class="left"
-          .label=${"Left"}
+          aria-label="Left"
+          title="Left"
           @click=${() => this._send(KEYCODE.DPAD_LEFT)}
         >
           <ha-icon icon="mdi:chevron-left"></ha-icon>
-        </ha-icon-button>
-        <ha-icon-button
+        </button>
+        <button
+          type="button"
           class="center"
-          .label=${"Select (hold for long-press)"}
+          aria-label="Select (hold for long-press)"
+          title="Select (hold for long-press)"
           @pointerdown=${this._centerLongPress.onPointerDown}
           @pointermove=${this._centerLongPress.onPointerMove}
           @pointerup=${this._centerLongPress.onPointerUp}
@@ -59,25 +65,33 @@ export class OrbitDpadCluster extends LitElement {
           @click=${this._onCenterClick}
         >
           <ha-icon icon="mdi:circle-medium"></ha-icon>
-        </ha-icon-button>
-        <ha-icon-button
+        </button>
+        <button
+          type="button"
           class="right"
-          .label=${"Right"}
+          aria-label="Right"
+          title="Right"
           @click=${() => this._send(KEYCODE.DPAD_RIGHT)}
         >
           <ha-icon icon="mdi:chevron-right"></ha-icon>
-        </ha-icon-button>
-        <ha-icon-button
+        </button>
+        <button
+          type="button"
           class="down"
-          .label=${"Down"}
+          aria-label="Down"
+          title="Down"
           @click=${() => this._send(KEYCODE.DPAD_DOWN)}
         >
           <ha-icon icon="mdi:chevron-down"></ha-icon>
-        </ha-icon-button>
+        </button>
       </div>
     `;
   }
 
+  // Plain native <button>s instead of ha-icon-button: HA's own icon-button
+  // paints a fixed-opacity currentColor circle behind its content on hover
+  // with no CSS hook to disable it (see ha-icon-button.ts's `::after`
+  // rule), so it can't be suppressed from here — only replaced.
   static styles = css`
     :host {
       display: block;
@@ -117,15 +131,36 @@ export class OrbitDpadCluster extends LitElement {
       grid-column: 2;
       grid-row: 3;
     }
-    ha-icon-button {
+    button {
+      all: unset;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       width: 100%;
       height: 100%;
-      --mdc-icon-button-size: 100%;
-      --mdc-icon-size: min(50%, 32px);
+      box-sizing: border-box;
+      color: inherit;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
       transition: transform 80ms ease-out;
     }
-    ha-icon-button:active {
+    button:active {
       transform: scale(0.9);
+    }
+    ha-icon {
+      /* --mdc-icon-size alone can't reach the SVG inside: ha-icon's own
+      box has no explicit size, so a percentage two shadow-DOM levels
+      down (into ha-svg-icon) resolves against an indefinite container
+      and the icon stops scaling/centering in sync with the button.
+      Sizing ha-icon itself directly first makes that box definite, so
+      the nested --mdc-icon-size: 100% then has something real to fill. */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 50%;
+      height: 50%;
+      --mdc-icon-size: 100%;
+      pointer-events: none;
     }
   `;
 }
