@@ -22,6 +22,7 @@ import {
   GRID_GAP_PX,
   GRID_ROW_HEIGHT_PX,
   KEYCODE,
+  MEDIA_PLAYER_FEATURE,
   UNAVAILABLE_GRACE_MS,
 } from "./const";
 import { loadOverride } from "./lib/app-shortcuts-storage";
@@ -467,8 +468,15 @@ export class OrbitRemoteCard extends LitElement {
       `;
     }
     const unavailable = this._showUnavailable;
+    const mediaPlayerState = box.media_player_entity
+      ? this.hass.states[box.media_player_entity]
+      : undefined;
+    const supportsVolumeSet =
+      ((mediaPlayerState?.attributes.supported_features ?? 0) &
+        MEDIA_PLAYER_FEATURE.VOLUME_SET) !==
+      0;
     const items = this._effectiveLayout.filter(
-      (item) => item.id !== "volume_slider" || !!box.media_player_entity
+      (item) => item.id !== "volume_slider" || supportsVolumeSet
     );
 
     return html`
@@ -487,9 +495,15 @@ export class OrbitRemoteCard extends LitElement {
                   .activeId=${box.id}
                   @box-selected=${this._onBoxSelected}
                 ></orbit-box-switcher>
-                <ha-icon-button .label=${"Settings"} @click=${this._openSettings}>
+                <button
+                  type="button"
+                  class="settings-button"
+                  aria-label="Settings"
+                  title="Settings"
+                  @click=${this._openSettings}
+                >
                   <ha-icon icon="mdi:cog"></ha-icon>
-                </ha-icon-button>
+                </button>
               </div>
             `}
         ${unavailable && !this._layoutEditMode
@@ -564,10 +578,21 @@ export class OrbitRemoteCard extends LitElement {
       min-width: 0;
       flex: 1 1 auto;
     }
-    .card-header-row ha-icon-button {
+    .settings-button {
+      all: unset;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       flex: 0 0 auto;
-      --mdc-icon-button-size: 36px;
+      width: 36px;
+      height: 36px;
+      box-sizing: border-box;
       color: var(--secondary-text-color);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .settings-button ha-icon {
+      pointer-events: none;
     }
     .edit-mode-hint {
       font-size: 0.85em;
