@@ -83,5 +83,4 @@ export const AUTOSAVE_DEBOUNCE_MS = 500;
 // Relevant bits of media_player's SUPPORT_* feature bitmask (HA core const.py)
 export const MEDIA_PLAYER_FEATURE = {
   VOLUME_SET: 4,
-  VOLUME_STEP: 1024,
 } as const;
