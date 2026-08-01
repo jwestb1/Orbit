@@ -167,6 +167,7 @@ export class OrbitRemoteCard extends LitElement {
       "--primary-color": t.accent,
       "--text-primary-color": t.bg,
       "--ha-card-border-radius": t.radius,
+      "--orbit-tile-radius": t.radius,
       "font-family": t.font,
     };
   }
@@ -651,7 +652,7 @@ export class OrbitRemoteCard extends LitElement {
       min-width: 0;
       min-height: 0;
       background: var(--secondary-background-color, rgba(0, 0, 0, 0.06));
-      border-radius: 12px;
+      border-radius: var(--orbit-tile-radius, 12px);
     }
     .grid-item-content {
       width: 100%;
