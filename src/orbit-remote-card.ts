@@ -167,7 +167,8 @@ export class OrbitRemoteCard extends LitElement {
       "--primary-color": t.accent,
       "--text-primary-color": t.bg,
       "--ha-card-border-radius": t.radius,
-      "--orbit-tile-radius": t.radius,
+      "--orbit-card-radius": t.radius,
+      "--orbit-control-radius": t.controlRadius,
       "font-family": t.font,
     };
   }
@@ -459,14 +460,19 @@ export class OrbitRemoteCard extends LitElement {
   private _renderItem(item: LayoutItem, unavailable: boolean, box: ResolvedBox) {
     const style = `grid-column: ${item.x + 1} / span ${item.w}; grid-row: ${item.y + 1} / span ${item.h};`;
     const content = this._renderItemContent(item.id, unavailable, box);
+    // Individual icon buttons (back/home/power/volume/etc.) get the
+    // theme's control radius (e.g. Organic's pill shape); the trackpad,
+    // D-pad, and volume slider are bigger surfaces and keep the card
+    // radius — matches the mockups' .btn vs .card distinction.
+    const itemClass = BUTTON_DEFS[item.id] ? "grid-item grid-item--control" : "grid-item";
 
     if (!this._layoutEditMode) {
-      return html`<div class="grid-item" style=${style}>${content}</div>`;
+      return html`<div class=${itemClass} style=${style}>${content}</div>`;
     }
 
     return html`
       <div
-        class="grid-item wiggle"
+        class="${itemClass} wiggle"
         style=${style}
         @pointerdown=${(e: PointerEvent) => this._onItemPointerDown(item.id, e)}
         @pointermove=${(e: PointerEvent) => this._getDragController(item.id).onPointerMove(e)}
@@ -652,7 +658,10 @@ export class OrbitRemoteCard extends LitElement {
       min-width: 0;
       min-height: 0;
       background: var(--secondary-background-color, rgba(0, 0, 0, 0.06));
-      border-radius: var(--orbit-tile-radius, 12px);
+      border-radius: var(--orbit-card-radius, 12px);
+    }
+    .grid-item.grid-item--control {
+      border-radius: var(--orbit-control-radius, 12px);
     }
     .grid-item-content {
       width: 100%;

@@ -54,7 +54,7 @@ export class OrbitAppGrid extends LitElement {
       padding: 8px 4px;
       min-height: 44px;
       border: none;
-      border-radius: var(--orbit-tile-radius, 8px);
+      border-radius: var(--orbit-control-radius, 8px);
       background: var(--secondary-background-color, #eee);
       color: var(--primary-text-color);
       cursor: pointer;
