@@ -1,6 +1,6 @@
 {
   "name": "orbit-remote-card",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "description": "Trackpad, D-pad and app shortcuts for Android TV boxes in Home Assistant.",
   "type": "module",
   "scripts": {
