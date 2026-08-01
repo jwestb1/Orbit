@@ -6,6 +6,7 @@ import { clearOverride } from "../lib/app-shortcuts-storage";
 import { debounce } from "../lib/debounce";
 import { dialogSectionStyles } from "../lib/shared-styles";
 import { AUTOSAVE_DEBOUNCE_MS, DEFAULT_TRACKPAD_SENSITIVITY_PX } from "../const";
+import { CARD_THEMES, type CardThemeId } from "../lib/card-themes";
 
 // Lets the user tune scroll speed and jump into the card's layout edit mode
 // straight from the live dashboard, without entering dashboard edit mode.
@@ -17,8 +18,10 @@ export class OrbitSettingsDialog extends LitElement {
   @property({ type: Boolean }) open = false;
   @property({ attribute: false }) remoteEntity!: string;
   @property({ type: Number }) sensitivity = DEFAULT_TRACKPAD_SENSITIVITY_PX;
+  @property() theme: CardThemeId = "default";
 
   @state() private _draftSensitivity = DEFAULT_TRACKPAD_SENSITIVITY_PX;
+  @state() private _draftTheme: CardThemeId = "default";
   @state() private _saving = false;
   @state() private _error: string | null = null;
 
@@ -31,6 +34,7 @@ export class OrbitSettingsDialog extends LitElement {
     // update while the dialog is open doesn't clobber unsaved edits.
     if (changed.has("open") && this.open) {
       this._draftSensitivity = this.sensitivity;
+      this._draftTheme = this.theme;
       this._saving = false;
       this._error = null;
     }
@@ -51,6 +55,16 @@ export class OrbitSettingsDialog extends LitElement {
     );
   }
 
+  private _notifyThemeChanged(): void {
+    this.dispatchEvent(
+      new CustomEvent("settings-changed", {
+        detail: { settings: { theme: this._draftTheme } },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
   private _close = (): void => {
     this._debouncedSave.flush();
     this.dispatchEvent(new CustomEvent("settings-closed", { bubbles: true, composed: true }));
@@ -61,6 +75,7 @@ export class OrbitSettingsDialog extends LitElement {
     this._error = null;
     const ok = await saveUiSettings(this.hass, this.remoteEntity, {
       sensitivity: this._draftSensitivity,
+      theme: this._draftTheme,
     });
     this._saving = false;
     if (!ok) {
@@ -71,7 +86,9 @@ export class OrbitSettingsDialog extends LitElement {
   private _reset = async (): Promise<void> => {
     this._debouncedSave.cancel();
     this._draftSensitivity = DEFAULT_TRACKPAD_SENSITIVITY_PX;
+    this._draftTheme = "default";
     this._notifyChanged();
+    this._notifyThemeChanged();
     this._saving = true;
     this._error = null;
     const ok = await clearUiSettings(this.hass, this.remoteEntity);
@@ -114,6 +131,12 @@ export class OrbitSettingsDialog extends LitElement {
     this._debouncedSave();
   };
 
+  private _themeChanged = (theme: CardThemeId): void => {
+    this._draftTheme = theme;
+    this._notifyThemeChanged();
+    this._debouncedSave();
+  };
+
   render() {
     if (!this.open) return html``;
 
@@ -126,6 +149,36 @@ export class OrbitSettingsDialog extends LitElement {
               <mwc-button @click=${this._editLayout}>Resize &amp; reorder buttons…</mwc-button>
             </div>
             <p class="hint">Drag to reorder, drag a corner to resize. Nothing can overlap.</p>
+          </div>
+
+          <div class="section">
+            <div class="section-title">Theme</div>
+            <div class="swatch-row">
+              <button
+                type="button"
+                class="swatch"
+                aria-label="Default"
+                aria-pressed=${this._draftTheme === "default"}
+                title="Default"
+                @click=${() => this._themeChanged("default")}
+              ></button>
+              ${CARD_THEMES.map(
+                (t) => html`
+                  <button
+                    type="button"
+                    class="swatch"
+                    aria-label=${t.name}
+                    aria-pressed=${this._draftTheme === t.id}
+                    title=${t.name}
+                    style="--sw-bg:${t.bg};--sw-accent:${t.accent}"
+                    @click=${() => this._themeChanged(t.id)}
+                  ></button>
+                `
+              )}
+            </div>
+            <p class="hint">
+              ${CARD_THEMES.find((t) => t.id === this._draftTheme)?.name ?? "Default (matches your Home Assistant theme)"}
+            </p>
           </div>
 
           <div class="section">
@@ -171,6 +224,25 @@ export class OrbitSettingsDialog extends LitElement {
         flex-direction: column;
         gap: 20px;
         min-width: 280px;
+      }
+      .swatch-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .swatch {
+        all: unset;
+        box-sizing: border-box;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        cursor: pointer;
+        background: linear-gradient(135deg, var(--sw-bg, var(--card-background-color)) 50%, var(--sw-accent, var(--divider-color)) 50%);
+        border: 1px solid var(--divider-color);
+        -webkit-tap-highlight-color: transparent;
+      }
+      .swatch[aria-pressed="true"] {
+        box-shadow: 0 0 0 2px var(--card-background-color), 0 0 0 4px var(--primary-color);
       }
       .slider-row {
         display: flex;
