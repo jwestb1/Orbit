@@ -1,5 +1,6 @@
 import type { LovelaceCardConfig } from "custom-card-helpers";
 import type { LayoutItem } from "./lib/button-layout";
+import type { CardThemeId } from "./lib/card-themes";
 
 export interface AppShortcut {
   name: string;
@@ -48,4 +49,5 @@ export type RemoteDirection = "SHORT" | "START_LONG" | "END_LONG";
 export interface UiSettingsOverride {
   sensitivity?: number;
   buttonLayout?: LayoutItem[];
+  theme?: CardThemeId;
 }

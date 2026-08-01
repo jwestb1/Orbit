@@ -73,6 +73,24 @@ describe("ui-settings-storage", () => {
     expect(await loadUiSettings(hass, "remote.shield")).toEqual({ sensitivity: 14 });
   });
 
+  it("round-trips a valid theme id", async () => {
+    vi.stubGlobal("localStorage", fakeLocalStorage());
+    const hass = fakeHass();
+    const settings = { theme: "nocturne" } as UiSettingsOverride;
+    await saveUiSettings(hass, "remote.shield", settings);
+    expect(await loadUiSettings(hass, "remote.shield")).toEqual(settings);
+  });
+
+  it("drops an invalid theme id but keeps other valid fields", async () => {
+    vi.stubGlobal("localStorage", fakeLocalStorage());
+    const hass = fakeHass();
+    await saveUiSettings(hass, "remote.shield", {
+      sensitivity: 14,
+      theme: "not-a-real-theme",
+    } as unknown as UiSettingsOverride);
+    expect(await loadUiSettings(hass, "remote.shield")).toEqual({ sensitivity: 14 });
+  });
+
   it("round-trips a buttonLayout array", async () => {
     vi.stubGlobal("localStorage", fakeLocalStorage());
     const hass = fakeHass();

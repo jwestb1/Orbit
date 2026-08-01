@@ -1,6 +1,7 @@
 import type { HomeAssistant } from "custom-card-helpers";
 import type { UiSettingsOverride } from "../types";
 import { LAYOUT_ITEM_IDS, type LayoutItem, type LayoutItemId } from "./button-layout";
+import { isCardThemeId } from "./card-themes";
 import { getUserData, readLegacyLocalStorage, setUserData } from "./user-data-storage";
 
 const KEY_PREFIX = "shield-remote-card.ui-settings.";
@@ -42,6 +43,7 @@ function sanitize(value: unknown): UiSettingsOverride | null {
     const layout = v.buttonLayout.filter(isLayoutItem);
     if (layout.length > 0) result.buttonLayout = layout;
   }
+  if (isCardThemeId(v.theme)) result.theme = v.theme;
   return result;
 }
 

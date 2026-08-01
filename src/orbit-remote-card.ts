@@ -1,5 +1,6 @@
 import { LitElement, html, css, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+import { styleMap } from "lit/directives/style-map.js";
 import type { HomeAssistant } from "custom-card-helpers";
 import "./components/trackpad";
 import "./components/dpad-cluster";
@@ -26,6 +27,7 @@ import {
   UNAVAILABLE_GRACE_MS,
 } from "./const";
 import { loadOverride } from "./lib/app-shortcuts-storage";
+import { getCardTheme, type CardThemeId } from "./lib/card-themes";
 import { loadUiSettings, saveUiSettings } from "./lib/ui-settings-storage";
 import { resolveActiveBox, resolveBoxes, type ResolvedBox } from "./lib/box-resolver";
 import {
@@ -141,6 +143,32 @@ export class OrbitRemoteCard extends LitElement {
       this._config.trackpad?.sensitivity ??
       DEFAULT_TRACKPAD_SENSITIVITY_PX
     );
+  }
+
+  private get _theme(): CardThemeId {
+    return this._uiSettingsOverride?.theme ?? "default";
+  }
+
+  // Overrides the same standard HA CSS custom properties every component
+  // already themes itself off of (--primary-color, --card-background-color,
+  // etc.) — cascades through shadow DOM to every child as ordinary CSS
+  // inheritance, no component-level changes needed. Empty for "default", so
+  // the card falls through to the dashboard's own HA theme unchanged.
+  private get _themeStyles(): Record<string, string> {
+    const t = getCardTheme(this._theme);
+    if (!t) return {};
+    return {
+      "--ha-card-background": t.bg,
+      "--card-background-color": t.bg,
+      "--primary-text-color": t.text,
+      "--secondary-text-color": `color-mix(in srgb, ${t.text} 55%, transparent)`,
+      "--secondary-background-color": t.surface,
+      "--divider-color": t.divider,
+      "--primary-color": t.accent,
+      "--text-primary-color": t.bg,
+      "--ha-card-border-radius": t.radius,
+      "font-family": t.font,
+    };
   }
 
   // The saved layout, or the built-in default if the user has never
@@ -480,7 +508,7 @@ export class OrbitRemoteCard extends LitElement {
     );
 
     return html`
-      <ha-card>
+      <ha-card style=${styleMap(this._themeStyles)}>
         ${this._layoutEditMode
           ? html`
               <div class="card-header-row">
@@ -546,6 +574,7 @@ export class OrbitRemoteCard extends LitElement {
           .open=${this._settingsOpen}
           .remoteEntity=${box.remote_entity}
           .sensitivity=${this._sensitivity}
+          .theme=${this._theme}
           @settings-changed=${this._settingsChanged}
           @settings-closed=${this._closeSettings}
           @open-app-picker=${this._openAppPicker}
