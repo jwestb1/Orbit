@@ -129,7 +129,7 @@ export class OrbitTrackpad extends LitElement {
       -webkit-user-select: none;
       width: 100%;
       height: 100%;
-      border-radius: 12px;
+      border-radius: var(--orbit-tile-radius, 12px);
       background: var(--secondary-background-color, #eee);
       display: flex;
       align-items: center;
