@@ -152,6 +152,12 @@ export class OrbitRemoteCardEditor extends LitElement implements LovelaceCardEdi
     this._emit({ ...this._config, haptics: checked });
   }
 
+  private _diagnosticLoggingChanged(e: Event): void {
+    if (!this._config) return;
+    const checked = (e.target as HTMLInputElement).checked;
+    this._emit({ ...this._config, diagnostic_logging: checked });
+  }
+
   private _updateApp(index: number, field: keyof AppShortcut) {
     return (e: Event): void => {
       if (!this._config) return;
@@ -187,6 +193,7 @@ export class OrbitRemoteCardEditor extends LitElement implements LovelaceCardEdi
 
     const sensitivity = this._config.trackpad?.sensitivity ?? DEFAULT_TRACKPAD_SENSITIVITY_PX;
     const haptics = this._config.haptics ?? true;
+    const diagnosticLogging = this._config.diagnostic_logging ?? false;
 
     const orbitBoxes = this.hass.user?.is_admin ? this._orbitBoxes : null;
 
@@ -305,6 +312,26 @@ export class OrbitRemoteCardEditor extends LitElement implements LovelaceCardEdi
         <ha-formfield .label=${"Haptic feedback"}>
           <ha-switch .checked=${haptics} @change=${this._hapticsChanged}></ha-switch>
         </ha-formfield>
+      </div>
+
+      <div class="section">
+        <ha-formfield .label=${"Diagnostic logging"}>
+          <ha-switch
+            .checked=${diagnosticLogging}
+            @change=${this._diagnosticLoggingChanged}
+          ></ha-switch>
+        </ha-formfield>
+        <p class="hint">
+          Traces every command this card sends, and whether Home Assistant accepted or
+          rejected it, to <strong>Settings &rsaquo; System &rsaquo; Logs</strong> (logger
+          <code>custom_components.orbit_card</code>). Rejections always show up there;
+          for the full sent/accepted trace, open that log entry once it appears and
+          enable debug logging for that logger. This only reports what Home Assistant
+          saw — the Android TV Remote protocol has no per-command reply from the box
+          itself, so it can't confirm the box actually acted on it. Leave this off
+          unless you're actively debugging — it logs on every button press and trackpad
+          swipe.
+        </p>
       </div>
 
       <div class="section">

@@ -42,6 +42,9 @@ export interface OrbitRemoteCardConfig extends LovelaceCardConfig {
   trackpad?: TrackpadConfig;
   haptics?: boolean;
   theme?: "auto" | "light" | "dark";
+  // Traces every command Orbit sends (and Home Assistant's accept/reject of
+  // it) to Settings > System > Logs via system_log.write — see ha-service.ts.
+  diagnostic_logging?: boolean;
 }
 
 export type RemoteDirection = "SHORT" | "START_LONG" | "END_LONG";

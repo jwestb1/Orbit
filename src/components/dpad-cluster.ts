@@ -15,6 +15,7 @@ export class OrbitDpadCluster extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ attribute: false }) entity!: string;
   @property({ type: Boolean }) haptics?: boolean;
+  @property({ type: Boolean }) diagnostics?: boolean;
   @property({ type: Boolean, reflect: true }) disabled = false;
 
   private _centerLongPress = new LongPressController(() =>
@@ -24,7 +25,7 @@ export class OrbitDpadCluster extends LitElement {
   private _send(command: string, holdSecs?: number, haptic: "light" | "medium" = "light") {
     if (this.disabled) return;
     triggerHaptic(this.haptics, haptic);
-    new HaService(this.hass, this.entity).sendCommand(command, holdSecs);
+    new HaService(this.hass, this.entity, this.diagnostics).sendCommand(command, holdSecs);
   }
 
   private _onCenterClick = () => {
