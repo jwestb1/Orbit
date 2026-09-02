@@ -17,12 +17,14 @@ export class OrbitTrackpad extends LitElement {
   @property({ attribute: false }) entity!: string;
   @property({ attribute: false }) config: TrackpadConfig = {};
   @property({ type: Boolean }) haptics?: boolean;
+  @property({ type: Boolean }) diagnostics?: boolean;
   @property({ type: Boolean, reflect: true }) disabled = false;
 
   @state() private _pressed = false;
 
   private _service?: HaService;
   private _serviceEntity?: string;
+  private _serviceDiagnostics?: boolean;
   private _engine?: GestureEngine;
   private _longPressTimer?: number;
   private _longPressFired = false;
@@ -31,9 +33,14 @@ export class OrbitTrackpad extends LitElement {
   private _activePointers = 0;
 
   private _getService(): HaService {
-    if (!this._service || this._serviceEntity !== this.entity) {
-      this._service = new HaService(this.hass, this.entity);
+    if (
+      !this._service ||
+      this._serviceEntity !== this.entity ||
+      this._serviceDiagnostics !== this.diagnostics
+    ) {
+      this._service = new HaService(this.hass, this.entity, this.diagnostics);
       this._serviceEntity = this.entity;
+      this._serviceDiagnostics = this.diagnostics;
       this._engine = undefined;
     }
     return this._service;

@@ -12,6 +12,7 @@ export class OrbitTextInputSheet extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ attribute: false }) entity!: string;
   @property({ type: Boolean }) haptics?: boolean;
+  @property({ type: Boolean }) diagnostics?: boolean;
   @property({ type: Boolean }) open = false;
 
   @state() private _value = "";
@@ -29,7 +30,7 @@ export class OrbitTextInputSheet extends LitElement {
     const text = this._value.trim();
     if (!text) return;
     triggerHaptic(this.haptics, "light");
-    new HaService(this.hass, this.entity).sendCommand(`text:${text}`);
+    new HaService(this.hass, this.entity, this.diagnostics).sendCommand(`text:${text}`);
     this._value = "";
   };
 

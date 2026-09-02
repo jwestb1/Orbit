@@ -30,6 +30,7 @@ import { loadOverride } from "./lib/app-shortcuts-storage";
 import { getCardTheme, type CardThemeId } from "./lib/card-themes";
 import { loadUiSettings, saveUiSettings } from "./lib/ui-settings-storage";
 import { resolveActiveBox, resolveBoxes, type ResolvedBox } from "./lib/box-resolver";
+import { resolveActivityLabel } from "./lib/activity-label";
 import {
   DEFAULT_LAYOUT,
   GRID_COLUMNS,
@@ -414,6 +415,7 @@ export class OrbitRemoteCard extends LitElement {
           .entity=${box.remote_entity}
           .config=${{ ...this._config.trackpad, sensitivity: this._sensitivity }}
           .haptics=${this._config.haptics}
+          .diagnostics=${this._config.diagnostic_logging}
           ?disabled=${unavailable}
         ></orbit-trackpad>
       `;
@@ -424,6 +426,7 @@ export class OrbitRemoteCard extends LitElement {
           .hass=${this.hass}
           .entity=${box.remote_entity}
           .haptics=${this._config.haptics}
+          .diagnostics=${this._config.diagnostic_logging}
           ?disabled=${unavailable}
         ></orbit-dpad-cluster>
       `;
@@ -444,6 +447,7 @@ export class OrbitRemoteCard extends LitElement {
         .hass=${this.hass}
         .entity=${box.remote_entity}
         .haptics=${this._config.haptics}
+        .diagnostics=${this._config.diagnostic_logging}
         ?disabled=${unavailable}
         .icon=${def.icon}
         .label=${def.label}
@@ -513,6 +517,14 @@ export class OrbitRemoteCard extends LitElement {
     const items = this._effectiveLayout.filter(
       (item) => item.id !== "volume_slider" || supportsVolumeSet
     );
+    const activityLabel = unavailable
+      ? undefined
+      : resolveActivityLabel(
+          this.hass.states[box.remote_entity]?.attributes?.current_activity as
+            | string
+            | undefined,
+          this._apps
+        );
 
     return html`
       <ha-card style=${styleMap(this._themeStyles)}>
@@ -544,6 +556,9 @@ export class OrbitRemoteCard extends LitElement {
         ${unavailable && !this._layoutEditMode
           ? html`<div class="unavailable-banner">Device is unavailable</div>`
           : ""}
+        ${!this._layoutEditMode && activityLabel
+          ? html`<div class="current-activity">Now on: ${activityLabel}</div>`
+          : ""}
         <div
           class="control-grid"
           @open-text-input=${this._openTextInput}
@@ -555,6 +570,7 @@ export class OrbitRemoteCard extends LitElement {
           .hass=${this.hass}
           .entity=${box.remote_entity}
           .haptics=${this._config.haptics}
+          .diagnostics=${this._config.diagnostic_logging}
           .open=${this._textInputOpen}
           @text-input-closed=${this._closeTextInput}
         ></orbit-text-input-sheet>
@@ -563,6 +579,7 @@ export class OrbitRemoteCard extends LitElement {
           .entity=${box.remote_entity}
           .apps=${this._apps}
           .haptics=${this._config.haptics}
+          .diagnostics=${this._config.diagnostic_logging}
           .open=${this._appLauncherOpen}
           @app-launcher-closed=${this._closeAppLauncher}
           @open-app-picker=${this._openAppPicker}
@@ -640,6 +657,14 @@ export class OrbitRemoteCard extends LitElement {
       font-size: 0.85em;
       color: var(--error-color, #db4437);
       text-align: center;
+    }
+    .current-activity {
+      font-size: 0.75em;
+      color: var(--secondary-text-color);
+      margin: -8px 0 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .placeholder {
       font-size: 0.9em;

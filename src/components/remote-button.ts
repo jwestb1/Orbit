@@ -20,6 +20,7 @@ export class OrbitRemoteButton extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ attribute: false }) entity!: string;
   @property({ type: Boolean }) haptics?: boolean;
+  @property({ type: Boolean }) diagnostics?: boolean;
   @property({ type: Boolean, reflect: true }) disabled = false;
   @property() icon = "";
   @property() label = "";
@@ -35,7 +36,7 @@ export class OrbitRemoteButton extends LitElement {
   private _send(command: KeyCode, holdSecs?: number, haptic: "light" | "medium" = "light") {
     if (this.disabled) return;
     triggerHaptic(this.haptics, haptic);
-    new HaService(this.hass, this.entity).sendCommand(command, holdSecs);
+    new HaService(this.hass, this.entity, this.diagnostics).sendCommand(command, holdSecs);
   }
 
   private _sendLongPress() {

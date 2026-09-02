@@ -13,6 +13,7 @@ export class OrbitAppLauncherDialog extends LitElement {
   @property({ attribute: false }) entity!: string;
   @property({ attribute: false }) apps: AppShortcut[] = DEFAULT_APPS;
   @property({ type: Boolean }) haptics?: boolean;
+  @property({ type: Boolean }) diagnostics?: boolean;
   @property({ type: Boolean }) open = false;
 
   private _close = (): void => {
@@ -34,6 +35,7 @@ export class OrbitAppLauncherDialog extends LitElement {
             .entity=${this.entity}
             .apps=${this.apps}
             .haptics=${this.haptics}
+            .diagnostics=${this.diagnostics}
             @app-launched=${this._close}
           ></orbit-app-grid>
         </div>

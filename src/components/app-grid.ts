@@ -12,12 +12,13 @@ export class OrbitAppGrid extends LitElement {
   @property({ attribute: false }) entity!: string;
   @property({ attribute: false }) apps: AppShortcut[] = DEFAULT_APPS;
   @property({ type: Boolean }) haptics?: boolean;
+  @property({ type: Boolean }) diagnostics?: boolean;
   @property({ type: Boolean, reflect: true }) disabled = false;
 
   private _launch(app: AppShortcut) {
     if (this.disabled) return;
     triggerHaptic(this.haptics, "selection");
-    new HaService(this.hass, this.entity).launchApp(app.package);
+    new HaService(this.hass, this.entity, this.diagnostics).launchApp(app.package);
     this.dispatchEvent(new CustomEvent("app-launched", { bubbles: true, composed: true }));
   }
 
