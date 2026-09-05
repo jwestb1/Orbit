@@ -4,6 +4,7 @@ import type { HomeAssistant } from "custom-card-helpers";
 import { HaService } from "../lib/ha-service";
 import { DEFAULT_APPS } from "../const";
 import { triggerHaptic } from "../lib/haptics";
+import { resolveLaunchTarget } from "../lib/app-launch-target";
 import type { AppShortcut } from "../types";
 
 @customElement("orbit-app-grid")
@@ -18,7 +19,7 @@ export class OrbitAppGrid extends LitElement {
   private _launch(app: AppShortcut) {
     if (this.disabled) return;
     triggerHaptic(this.haptics, "selection");
-    new HaService(this.hass, this.entity, this.diagnostics).launchApp(app.package);
+    new HaService(this.hass, this.entity, this.diagnostics).launchApp(resolveLaunchTarget(app));
     this.dispatchEvent(new CustomEvent("app-launched", { bubbles: true, composed: true }));
   }
 

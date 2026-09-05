@@ -78,7 +78,7 @@ export class OrbitAppPickerDialog extends LitElement {
     this._setDraftApps(this._draftApps.map((a) => (a.package === pkg ? { ...a, icon } : a)));
   }
 
-  private _updateManual(index: number, field: "name" | "package" | "icon") {
+  private _updateManual(index: number, field: "name" | "package" | "icon" | "link") {
     return (e: Event): void => {
       const value = (e.target as HTMLInputElement).value;
       const manual = this._manualEntries.map((a, i) => (i === index ? { ...a, [field]: value } : a));
@@ -205,6 +205,11 @@ export class OrbitAppPickerDialog extends LitElement {
                   .label=${"Package ID"}
                   .value=${app.package}
                   @input=${this._updateManual(index, "package")}
+                ></ha-textfield>
+                <ha-textfield
+                  .label=${"Deep link (optional)"}
+                  .value=${app.link ?? ""}
+                  @input=${this._updateManual(index, "link")}
                 ></ha-textfield>
                 <ha-icon-button
                   .label=${"Move up"}

@@ -49,6 +49,21 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe("link field", () => {
+  it("round-trips a string link and drops a non-string one", async () => {
+    const hass = fakeHass();
+    const apps = [
+      { name: "Netflix", icon: "mdi:netflix", package: "com.netflix.ninja", link: "netflix://" },
+      { name: "Kodi", icon: "mdi:kodi", package: "org.xbmc.kodi", link: null },
+    ] as unknown as AppShortcut[];
+    await saveOverride(hass, "remote.shield", apps);
+    expect(await loadOverride(hass, "remote.shield")).toEqual([
+      { name: "Netflix", icon: "mdi:netflix", package: "com.netflix.ninja", link: "netflix://" },
+      { name: "Kodi", icon: "mdi:kodi", package: "org.xbmc.kodi" },
+    ]);
+  });
+});
+
 describe("app-shortcuts-storage", () => {
   it("returns null when nothing is stored for a given entity", async () => {
     vi.stubGlobal("localStorage", fakeLocalStorage());

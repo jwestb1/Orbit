@@ -359,6 +359,12 @@ export class OrbitRemoteCardEditor extends LitElement implements LovelaceCardEdi
                 .value=${app.package}
                 @input=${this._updateApp(index, "package")}
               ></ha-textfield>
+              <ha-textfield
+                .label=${"Deep link (optional)"}
+                .helper=${"e.g. https://www.netflix.com/title — more reliable than a package ID"}
+                .value=${app.link ?? ""}
+                @input=${this._updateApp(index, "link")}
+              ></ha-textfield>
               <ha-icon-button
                 .label=${"Move up"}
                 .disabled=${index === 0}
