@@ -39,23 +39,28 @@ export const KEYCODE = {
 
 export type KeyCode = (typeof KEYCODE)[keyof typeof KEYCODE];
 
-// Default app shortcut catalog (spec §5.5), matching HA's own documented package IDs
+// Default app shortcut catalog (spec §5.5). Package ids match HA's own
+// documented ones; `link` values come from HA's androidtv_remote docs and the
+// community "App Links/Deep Linking" guide. Entries without a `link` (Hulu,
+// Peacock, Kodi, Steam Link) have no known reliable deep link and launch by
+// package id, which the Play Store change may block — see
+// lib/app-launch-target.ts.
 export const DEFAULT_APPS: AppShortcut[] = [
-  { name: "YouTube", icon: "mdi:youtube", package: "com.google.android.youtube.tv" },
-  { name: "Netflix", icon: "mdi:netflix", package: "com.netflix.ninja" },
-  { name: "Prime Video", icon: "mdi:amazon", package: "com.amazon.amazonvideo.livingroom" },
-  { name: "Disney+", icon: "mdi:plus-circle", package: "com.disney.disneyplus" },
+  { name: "YouTube", icon: "mdi:youtube", package: "com.google.android.youtube.tv", link: "https://www.youtube.com" },
+  { name: "Netflix", icon: "mdi:netflix", package: "com.netflix.ninja", link: "https://www.netflix.com/title" },
+  { name: "Prime Video", icon: "mdi:amazon", package: "com.amazon.amazonvideo.livingroom", link: "https://app.primevideo.com" },
+  { name: "Disney+", icon: "mdi:plus-circle", package: "com.disney.disneyplus", link: "https://www.disneyplus.com" },
   { name: "Hulu", icon: "mdi:hulu", package: "com.hulu.livingroomplus" },
-  { name: "Max", icon: "mdi:apps", package: "com.wbd.stream" },
+  { name: "Max", icon: "mdi:apps", package: "com.wbd.stream", link: "https://play.hbomax.com" },
   { name: "Peacock", icon: "mdi:apps", package: "com.peacocktv.peacockandroid" },
-  { name: "Paramount+", icon: "mdi:apps", package: "com.cbs.ott" },
-  { name: "Apple TV", icon: "mdi:apple", package: "com.apple.atve.androidtv.appletv" },
-  { name: "Spotify", icon: "mdi:spotify", package: "com.spotify.tv.android" },
-  { name: "Tubi", icon: "mdi:apps", package: "com.tubitv" },
-  { name: "Pluto TV", icon: "mdi:apps", package: "tv.pluto.android" },
-  { name: "Plex", icon: "mdi:plex", package: "com.plexapp.android" },
+  { name: "Paramount+", icon: "mdi:apps", package: "com.cbs.ott", link: "https://www.paramountplus.com/" },
+  { name: "Apple TV", icon: "mdi:apple", package: "com.apple.atve.androidtv.appletv", link: "https://tv.apple.com" },
+  { name: "Spotify", icon: "mdi:spotify", package: "com.spotify.tv.android", link: "spotify://" },
+  { name: "Tubi", icon: "mdi:apps", package: "com.tubitv", link: "https://tubitv.com/" },
+  { name: "Pluto TV", icon: "mdi:apps", package: "tv.pluto.android", link: "https://pluto.tv/en/live-tv" },
+  { name: "Plex", icon: "mdi:plex", package: "com.plexapp.android", link: "plex://" },
   { name: "Kodi", icon: "mdi:kodi", package: "org.xbmc.kodi" },
-  { name: "Twitch", icon: "mdi:twitch", package: "tv.twitch.android.app" },
+  { name: "Twitch", icon: "mdi:twitch", package: "tv.twitch.android.app", link: "twitch://home" },
   { name: "Steam Link", icon: "mdi:steam", package: "com.valvesoftware.steamlink" },
 ];
 

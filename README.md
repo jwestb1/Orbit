@@ -140,7 +140,20 @@ apps:
   - name: YouTube
     icon: mdi:youtube
     package: com.google.android.youtube.tv
+    link: https://www.youtube.com   # optional deep link — see note below
 ```
+
+> **App shortcuts not launching anything?** Launching by bare package ID
+> goes through the Play Store (`market://launch?id=…`), and a Google Play
+> Store change broke that for many apps — noticeably on the NVIDIA Shield.
+> Home Assistant's [Android TV Remote docs](https://www.home-assistant.io/integrations/androidtv_remote/#launching-apps)
+> now recommend deep links instead. Orbit's built-in catalog already carries
+> a known-good `link` for most apps (it's applied even to shortcuts you saved
+> before this field existed). For a custom app, fill in **Deep link** in the
+> editor or app picker; the community
+> [App Links/Deep Linking guide](https://community.home-assistant.io/t/android-tv-remote-app-links-deep-linking-guide/567921)
+> lists working links. `package` is still required — it's how the
+> "Now on:" label recognises the foreground app.
 
 <details>
 <summary><strong>Multiple boxes on one card (device switcher)</strong></summary>

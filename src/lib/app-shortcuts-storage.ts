@@ -14,9 +14,16 @@ function isValidShortcut(value: unknown): value is AppShortcut {
   return typeof v.name === "string" && typeof v.icon === "string" && typeof v.package === "string";
 }
 
+// Drops any stray non-string `link` (e.g. null from an older save) so the
+// rest of the card can rely on `link` being either a string or absent.
+function normalizeShortcut(app: AppShortcut): AppShortcut {
+  const { link, ...rest } = app as AppShortcut & { link?: unknown };
+  return typeof link === "string" && link ? { ...rest, link } : rest;
+}
+
 function sanitize(value: unknown): AppShortcut[] | null {
   if (!Array.isArray(value)) return null;
-  return value.filter(isValidShortcut);
+  return value.filter(isValidShortcut).map(normalizeShortcut);
 }
 
 // Returns null if there is no override, the connection is unavailable, or

@@ -5,7 +5,16 @@ import type { CardThemeId } from "./lib/card-themes";
 export interface AppShortcut {
   name: string;
   icon: string;
+  // Android package id. Always required: it's what `current_activity`
+  // reports, so it's how the "Now on:" label matches an app, and it's the
+  // stable identity of a shortcut in the picker/storage.
   package: string;
+  // Optional deep link (e.g. "https://www.netflix.com/title", "plex://")
+  // sent as the `activity` instead of the package id. Strongly preferred:
+  // androidtvremote2 turns a bare package id into a Play Store
+  // "market://launch?id=" link, and a Google Play Store change broke that
+  // route for many apps (see lib/app-launch-target.ts).
+  link?: string;
 }
 
 export interface TrackpadConfig {
