@@ -1,5 +1,5 @@
 import { LitElement, html, css, type PropertyValues } from "lit";
-import { customElement, property, state } from "lit/decorators.js";
+import { customElement, property, state, query } from "lit/decorators.js";
 import { styleMap } from "lit/directives/style-map.js";
 import type { HomeAssistant } from "custom-card-helpers";
 import "./components/trackpad";
@@ -7,6 +7,7 @@ import "./components/dpad-cluster";
 import "./components/remote-button";
 import "./components/volume-slider";
 import "./components/text-input-sheet";
+import type { OrbitTextInputSheet } from "./components/text-input-sheet";
 import "./components/app-launcher-dialog";
 import "./components/app-picker-dialog";
 import "./components/settings-dialog";
@@ -279,8 +280,16 @@ export class OrbitRemoteCard extends LitElement {
     });
   }
 
+  @query("orbit-text-input-sheet") private _textInputSheetEl?: OrbitTextInputSheet;
+
   private _openTextInput = (): void => {
+    // Keep the reactive flag in sync (so the `.open=` binding below stays
+    // correct across any later unrelated re-render), but the actual
+    // show+focus happens via `present()`, called synchronously right here
+    // in the tap handler — see text-input-sheet.ts for why that
+    // synchronousness is what makes the mobile on-screen keyboard appear.
     this._textInputOpen = true;
+    this._textInputSheetEl?.present();
   };
 
   private _closeTextInput = (): void => {
