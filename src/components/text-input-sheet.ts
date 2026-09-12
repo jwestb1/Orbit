@@ -1,4 +1,4 @@
-import { LitElement, html, css } from "lit";
+import { LitElement, html, css, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type { HomeAssistant } from "custom-card-helpers";
 import { HaService } from "../lib/ha-service";
@@ -39,6 +39,28 @@ export class OrbitTextInputSheet extends LitElement {
     e.preventDefault();
     this._send();
   };
+
+  protected updated(changedProperties: PropertyValues<this>): void {
+    if (changedProperties.has("open") && this.open) void this._focusInput();
+  }
+
+  // ha-dialog's own `dialogInitialFocus` handling only calls .focus() once
+  // its opening animation finishes, which lands too late for mobile
+  // browsers to treat as part of the tap that opened the sheet — so the
+  // on-screen keyboard never appears. Focusing here, as soon as the field
+  // exists (a couple of microtask hops from that tap, no animation wait),
+  // stays inside the window mobile browsers still attribute to the user
+  // gesture. `dialogInitialFocus` stays on the field below as a harmless
+  // fallback (and to keep the dialog's own focus trap targeting it instead
+  // of the dialog surface once the animation completes).
+  private async _focusInput(): Promise<void> {
+    const field = this.shadowRoot?.querySelector("ha-textfield") as
+      | (HTMLElement & { focus?: () => void; updateComplete?: Promise<unknown> })
+      | null;
+    if (!field) return;
+    if (field.updateComplete) await field.updateComplete;
+    field.focus?.();
+  }
 
   render() {
     if (!this.open) return html``;
